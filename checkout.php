@@ -44,13 +44,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
     $normal_cart = [];
     $has_preorder = false;
     foreach ($cart_items as $item) {
-        if (!empty($item['preorder'])) {
+        if ($item['preorders_left'] > 0) {
             $has_preorder = true;
             break;
         }
     }
     foreach ($cart_items as $item_id => $item) {
-        if (($has_preorder && !$_POST['preorder_separate']) || !empty($item['preorder'])) $preorder_cart[$item_id] = $item;
+        if (($has_preorder && !$_POST['preorder_separate']) || $item['preorders_left'] > 0) $preorder_cart[$item_id] = $item;
         else $normal_cart[$item_id] = $item;
     }
 
@@ -101,6 +101,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
         $insert_query = "INSERT INTO orders (status, name, address, postal_code, country, email, phone, items, subtotal, shipping, total, notes) 
                          VALUES ('preorder', '$name', '$address', '$postal_code', '$country', '$email', '$phone', '$order_items_json', '$subtotal_fmt', '$shipping_fmt', '$total_fmt', '$notes');";
         mysqli_query($db, $insert_query);
+
+        // Update preorders_left
+        foreach ($preorder_cart as $item) {
+            $item_id = $item['id'];
+            $new_preorders_left = max(0, $item['preorders_left'] - $item['quantity']);
+            mysqli_query($db, "UPDATE items SET preorders_left=$new_preorders_left WHERE id=$item_id;");
+        }
     }
 
     // Remove items from stock
@@ -420,8 +427,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
         $ids_string = implode(',', array_map('intval', $item_ids));
         $cart_query = mysqli_query($db, "SELECT * FROM items WHERE id IN ($ids_string);");
         while ($row = mysqli_fetch_array($cart_query)) {
-            if (empty($row['preorder'])) $has_normal = true;
-            if (!empty($row['preorder'])) $has_preorder = true;
+            if ($row['preorders_left'] <= 0) $has_normal = true;
+            if ($row['preorders_left'] > 0) $has_preorder = true;
         }
     }
     if ($has_normal && $has_preorder) {
