@@ -141,11 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <script>
 function updateCartQuantity(form, delta) {
     const input = form.querySelector('input[name="set_quantity_value"]');
-    const max = parseInt(input.max) || 9999;
-    let val = parseInt(input.value) || (parseInt(input.min) || 1);
-    val += delta;
-    if (val > max) val = max;
-    input.value = val;
+    input.value = Math.min(parseInt(input.value) || (parseInt(input.min) || 1) + delta, parseInt(input.max) || 9999);
     form.submit();
 }
 // Prevent double submit if JS triggers submit
