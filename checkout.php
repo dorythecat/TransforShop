@@ -42,14 +42,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
     // Split into preorder and normal
     $preorder_cart = [];
     $normal_cart = [];
+    $has_preorder = false;
+    foreach ($cart_items as $item) {
+        if (!empty($item['preorder'])) {
+            $has_preorder = true;
+            break;
+        }
+    }
     foreach ($cart_items as $item_id => $item) {
-        if (!empty($item['preorder'])) $preorder_cart[$item_id] = $item;
+        if (($has_preorder && !$_POST['preorder_separate']) || !empty($item['preorder'])) $preorder_cart[$item_id] = $item;
         else $normal_cart[$item_id] = $item;
     }
 
     // Helper to calculate shipping
-    function calc_shipping($country) {
-        $shipping = 4.05;
+    function calc_shipping($country): float {
+        $shipping = 4.50;
         $eu = ["Portugal", "United Kingdom", "Germany", "France", "Andorra", "Italy", "Belgium", "Netherlands", "Luxembourg", "Ireland", "Austria", "Isle of Mann", "Denmark", "Poland", "Czech Republic", "Slovakia", "Slovenia", "Hungary", "Romania", "Bulgaria", "Greece", "Croatia", "Finland", "Sweden", "Estonia", "Latvia", "Lithuania"];
         $us_au = ["United States", "Australia", "Canada", "Japan", "New Zealand", "Russia"];
         if ($country === "Spain") $shipping = 2.00;
@@ -396,6 +403,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
     <input type="email" name="email" placeholder="Email Address" required><br>
     <input type="text" name="phone" placeholder="Phone Number" required><br>
     <input type="text" name="notes" placeholder="Additional Notes (optional)"><br>
+    <?php
+    $has_preorder = false;
+    $item_ids = array_keys($_SESSION['cart']);
+    if (!empty($item_ids)) {
+        $ids_string = implode(',', array_map('intval', $item_ids));
+        $cart_query = mysqli_query($db, "SELECT * FROM items WHERE id IN ($ids_string);");
+        while ($row = mysqli_fetch_array($cart_query)) {
+            if (!empty($row['preorder'])) {
+                $has_preorder = true;
+                break;
+            }
+        }
+    }
+    if ($has_preorder) {
+        echo '<label for="preorder_separate" style="background-color:white;color:red">WARNING: PREORDER ITEMS ARE SENT WHEN MADE AVAILABLE BY DEFAULT. TO RECEIVE EVERYTHING AT THE SAME TIME (and not pay shipping two times) PLEASE UNCHECK THIS BOX.</label><br>';
+        echo '<input type="checkbox" name="preorder_separate" id="preorder_separate" checked>';
+    } else {
+        echo '<input type="hidden" name="preorder_separate" value="0">';
+    }
+    ?>
     <button type="submit">Place Order</button>
     <button type="button" onclick="window.location.href='index.php'">Continue Shopping</button>
 </form>
@@ -410,16 +437,20 @@ const subtotal = parseFloat(document.getElementById('subtotal').innerText.replac
 const countrySelect = document.getElementById('country');
 const shippingCostTd = document.getElementById('shipping-cost');
 const totalCostTd = document.getElementById('total-cost');
-countrySelect.addEventListener('change', function() {
+const preorderSeparate = document.getElementById('preorder_separate');
+function updateCosts() {
     const country = countrySelect.value;
     let shipping = defaultShipping;
     if (shippingMap.hasOwnProperty(country)) shipping = shippingMap[country];
     else if (country === 'Spain') shipping = 2.00;
+    if (preorderSeparate && preorderSeparate.checked) shipping *= 2;
     shippingCostTd.innerHTML = `<strong>${shipping.toFixed(2)}€</strong>`;
     totalCostTd.innerHTML = `<strong>${(subtotal + shipping).toFixed(2)}€</strong>`;
     shippingCostTd.classList.remove('placeholder');
     totalCostTd.classList.remove('placeholder');
-});
+}
+countrySelect.addEventListener('change', () => updateCosts());
+preorderSeparate?.addEventListener('change', () => updateCosts());
 </script>
 </body>
 </html>
