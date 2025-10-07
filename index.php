@@ -35,6 +35,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_cart_id'])) {
         if (isset($_SESSION['cart'])) foreach ($_SESSION['cart'] as $key => $value) $items_in_cart += $value;
         echo "<h3>Shopping Cart ($items_in_cart)</h3>"
         ?>
+
+        <div id="cart-dropdown">
+            <?php
+            if ($items_in_cart == 0) echo "<p>Your cart is currently empty.</p>";
+            else {
+                echo "<table>";
+                echo "<tr><th>Item</th><th>Quantity</th><th>Price</th></tr>";
+                $total_price = 0;
+                foreach ($_SESSION['cart'] as $itemId => $quantity) {
+                    $item_query = mysqli_query($db, "SELECT * FROM items WHERE id=$itemId;");
+                    if ($item_row = mysqli_fetch_array($item_query)) {
+                        $item_price = number_format($item_row['price'] * $quantity, 2);
+                        $total_price += $item_row['price'] * $quantity;
+                        echo "<tr><td>{$item_row['name']}</td><td>$quantity</td><td>{$item_price}€</td></tr>";
+                    }
+                }
+                $total_price = number_format($total_price, 2);
+                echo "<tr><td colspan='2'><strong>Total</strong></td><td><strong>{$total_price}€</strong></td></tr>";
+                echo "</table>";
+                echo "<form method='POST' action='checkout.php'><button type='submit'>Checkout</button></form>";
+            }
+            ?>
+        </div>
     </div>
 </div>
 
