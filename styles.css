@@ -247,11 +247,10 @@ input[type=number] {
 
 #checkout-table th, #checkout-table td {
     padding: 10px;
-    border-bottom: 1px solid #ccc;
     text-align: left;
 }
 
-#checkout-table tr {
+#checkout-table tr:first-child {
     vertical-align: middle;
     background-color: #999;
 }
