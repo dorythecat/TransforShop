@@ -47,6 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_cart_id'])) {
             echo "<div class='product-card'>";
             echo "<img src='{$row['image']}' alt='Product Image'>";
             echo "<h2>{$row['name']}</h2>";
+            echo "<p>Stock: {$row['stock']}</p>";
             echo "<p>{$price}€</p>";
             echo "<form method='POST' style='display:inline;'>";
             echo "<input type='hidden' name='add_to_cart_id' value='{$row['id']}'>";
