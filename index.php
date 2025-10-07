@@ -85,15 +85,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         echo "<td>";
                         echo "<form method='POST' style='display:inline-flex; align-items:center; gap:2px;' class='cart-quantity-form' onsubmit='return handleCartQuantityFormSubmit(event, this)'>";
                         echo "<button type='button' onclick='updateCartQuantity(this.form, -1)' style='width:28px;height:28px;'>-</button>";
-                        echo "<input type='number' name='set_quantity_value' value='{$quantity}' min='1' max='{$item_row['stock']}' style='width:40px; text-align:center;' onchange='this.form.submit()'>";
-                        echo "<input type='hidden' name='set_quantity_id' value='{$itemId}'>";
+                        echo "<input type='number' name='set_quantity_value' value='$quantity' min='1' max='{$item_row['stock']}' style='width:40px; text-align:center;' onchange='this.form.submit()'>";
+                        echo "<input type='hidden' name='set_quantity_id' value='$itemId'>";
                         echo "<button type='button' onclick='updateCartQuantity(this.form, 1)' style='width:28px;height:28px;'>+</button>";
                         echo "</form> ";
                         echo "</td>";
                         echo "<td>{$item_price}€</td>";
                         echo "<td>";
                         echo "<form method='POST' style='display:inline;'>";
-                        echo "<input type='hidden' name='set_quantity_id' value='{$itemId}'>";
+                        echo "<input type='hidden' name='set_quantity_id' value='$itemId'>";
                         echo "<input type='hidden' name='set_quantity_value' value='0'>";
                         echo "<button id='remove-button' type='submit'>Remove</button>";
                         echo "</form>";
