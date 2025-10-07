@@ -73,6 +73,11 @@ h1 {
     margin-bottom: 10px;
 }
 
+.out-of-stock {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
 .add-to-cart {
     background-color: #28a745;
     color: white;
@@ -91,6 +96,11 @@ h1 {
 
 .add-to-cart:active {
     background-color: #0e7e34;
+}
+
+.add-to-cart:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
 }
 
 @media (max-width: 600px) {

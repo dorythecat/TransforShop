@@ -25,12 +25,21 @@ $shop_items=mysqli_query($db,"SELECT * FROM items");
     <?php
     while ($row = mysqli_fetch_array($shop_items)) {
         $price=number_format($row['price'],2);
-        echo "<div class='product-card'>";
-        echo "<img src='{$row['image']}' alt='Product Image'>";
-        echo "<h2>{$row['name']}</h2>";
-        echo "<p>{$price}€</p>";
-        echo "<button class='add-to-cart'>Add to Cart</button>";
-        echo "</div>";
+        if ($row['stock'] > 0) {
+            echo "<div class='product-card'>";
+            echo "<img src='{$row['image']}' alt='Product Image'>";
+            echo "<h2>{$row['name']}</h2>";
+            echo "<p>{$price}€</p>";
+            echo "<button class='add-to-cart'>Add to Cart</button>";
+            echo "</div>";
+        } else {
+            echo "<div class='product-card out-of-stock'>";
+            echo "<img src='{$row['image']}' alt='Product Image'>";
+            echo "<h2>{$row['name']}</h2>";
+            echo "<p>{$price}€</p>";
+            echo "<button class='add-to-cart' disabled>Out of Stock</button>";
+            echo "</div>";
+        }
     }
     ?>
 </div>
