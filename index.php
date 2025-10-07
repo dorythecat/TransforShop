@@ -53,7 +53,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_cart_id'])) {
             echo "<input type='hidden' name='add_to_cart_id' value='{$row['id']}'>";
             echo "<button class='add-to-cart' type='submit'>Add to Cart</button>";
             echo "</form>";
-            echo "</div>";
         } else {
             echo "<div class='product-card out-of-stock'>";
             echo "<h1 class='out-of-stock-label'>Out of Stock</h1>";
@@ -61,8 +60,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_cart_id'])) {
             echo "<h2>{$row['name']}</h2>";
             echo "<p>{$price}€</p>";
             echo "<button class='add-to-cart' disabled>Out of Stock</button>";
-            echo "</div>";
         }
+        echo "</div>";
     }
     ?>
 </div>
