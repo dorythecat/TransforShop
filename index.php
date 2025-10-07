@@ -118,6 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $price=number_format($row['price'],2);
         if ($row['stock'] > 0) {
             echo "<div class='product-card'>";
+            if ($row['preorder']) echo "<h1 class='preorder-label'>Preorder</h1>";
             echo "<img src='{$row['image']}' alt='Product Image'>";
             echo "<h2>{$row['name']}</h2>";
             echo "<p>Stock: {$row['stock']}</p>";
