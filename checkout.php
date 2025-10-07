@@ -1,6 +1,5 @@
 <?php
-if (!session_id()) session_start();
-if (!isset($_SESSION['cart']) || empty($_SESSION['cart'])) {
+if (!session_id() || empty($_SESSION['cart'])) {
     header("Location: index.php");
     exit();
 }
