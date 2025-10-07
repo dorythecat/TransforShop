@@ -1,7 +1,7 @@
 <?php
 session_start();
 $db=mysqli_connect("localhost","root","","transforshop");
-$shop_items=mysqli_query($db,"SELECT * FROM items");
+$shop_items=mysqli_query($db,"SELECT * FROM items ORDER BY stock DESC;");
 
 function addToCart($itemId) {
     if (!isset($_SESSION['cart'])) $_SESSION['cart'] = [];
