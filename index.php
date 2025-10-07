@@ -5,14 +5,48 @@ $shop_items=mysqli_query($db,"SELECT * FROM items ORDER BY stock DESC;");
 
 function addToCart($itemId) {
     if (!isset($_SESSION['cart'])) $_SESSION['cart'] = [];
-
     if (isset($_SESSION['cart'][$itemId])) $_SESSION['cart'][$itemId]++;
     else $_SESSION['cart'][$itemId] = 1;
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_cart_id'])) {
-    $itemId = intval($_POST['add_to_cart_id']);
-    addToCart($itemId);
+function removeFromCart($itemId) {
+    if (isset($_SESSION['cart'][$itemId])) {
+        $_SESSION['cart'][$itemId]--;
+        if ($_SESSION['cart'][$itemId] <= 0) unset($_SESSION['cart'][$itemId]);
+    }
+}
+
+function setCartQuantity($itemId, $quantity, $maxStock) {
+    $quantity = max(0, min($quantity, $maxStock));
+    if ($quantity > 0) $_SESSION['cart'][$itemId] = $quantity;
+    else unset($_SESSION['cart'][$itemId]);
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['add_to_cart_id'])) {
+        $itemId = intval($_POST['add_to_cart_id']);
+        addToCart($itemId);
+    }
+    if (isset($_POST['add_one'])) {
+        $itemId = intval($_POST['add_one']);
+        addToCart($itemId);
+    }
+    if (isset($_POST['remove_one'])) {
+        $itemId = intval($_POST['remove_one']);
+        removeFromCart($itemId);
+    }
+    if (isset($_POST['set_quantity_id']) && isset($_POST['set_quantity_value'])) {
+        $itemId = intval($_POST['set_quantity_id']);
+        $quantity = intval($_POST['set_quantity_value']);
+        // Get max stock for this item
+        $item_query = mysqli_query($db, "SELECT stock FROM items WHERE id=$itemId;");
+        $maxStock = 0;
+        if ($item_row = mysqli_fetch_array($item_query)) $maxStock = $item_row['stock'];
+        setCartQuantity($itemId, $quantity, $maxStock);
+    }
+
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit();
 }
 ?>
 
@@ -22,7 +56,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_cart_id'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TransforMate Official Shop</title>
-
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -35,26 +68,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_cart_id'])) {
         if (isset($_SESSION['cart'])) foreach ($_SESSION['cart'] as $key => $value) $items_in_cart += $value;
         echo "<h3>Shopping Cart ($items_in_cart)</h3>"
         ?>
-
         <div id="cart-dropdown">
             <?php
             if ($items_in_cart == 0) echo "<p>Your cart is currently empty.</p>";
             else {
                 echo "<table>";
-                echo "<tr><th>Item</th><th>Quantity</th><th>Price</th></tr>";
+                echo "<tr><th>Item</th><th>Quantity</th><th>Price</th><th>Actions</th></tr>";
                 $total_price = 0;
                 foreach ($_SESSION['cart'] as $itemId => $quantity) {
                     $item_query = mysqli_query($db, "SELECT * FROM items WHERE id=$itemId;");
                     if ($item_row = mysqli_fetch_array($item_query)) {
                         $item_price = number_format($item_row['price'] * $quantity, 2);
                         $total_price += $item_row['price'] * $quantity;
-                        echo "<tr><td>{$item_row['name']}</td><td>$quantity</td><td>{$item_price}€</td></tr>";
+                        echo "<tr>";
+                        echo "<td>{$item_row['name']}</td>";
+                        echo "<td>";
+                        echo "<form method='POST' style='display:inline-flex; align-items:center; gap:2px;' class='cart-quantity-form' onsubmit='return handleCartQuantityFormSubmit(event, this)'>";
+                        echo "<button type='button' onclick='updateCartQuantity(this.form, -1)' style='width:28px;height:28px;'>-</button>";
+                        echo "<input type='number' name='set_quantity_value' value='{$quantity}' min='1' max='{$item_row['stock']}' style='width:40px; text-align:center;' onchange='this.form.submit()'>";
+                        echo "<input type='hidden' name='set_quantity_id' value='{$itemId}'>";
+                        echo "<button type='button' onclick='updateCartQuantity(this.form, 1)' style='width:28px;height:28px;'>+</button>";
+                        echo "</form> ";
+                        echo "</td>";
+                        echo "<td>{$item_price}€</td>";
+                        echo "<td>";
+                        echo "<form method='POST' style='display:inline;'>";
+                        echo "<input type='hidden' name='set_quantity_id' value='{$itemId}'>";
+                        echo "<input type='hidden' name='set_quantity_value' value='0'>";
+                        echo "<button id='remove-button' type='submit'>Remove</button>";
+                        echo "</form>";
+                        echo "</td>";
+                        echo "</tr>";
                     }
                 }
                 $total_price = number_format($total_price, 2);
-                echo "<tr><td colspan='2'><strong>Total</strong></td><td><strong>{$total_price}€</strong></td></tr>";
+                echo "<tr><td colspan='3'><strong>Total</strong></td><td><strong>{$total_price}€</strong></td></tr>";
                 echo "</table>";
-                echo "<form method='POST' action='checkout.php'><button type='submit'>Checkout</button></form>";
+                echo "<form method='POST' action='checkout.php'><button id='checkout-button' type='submit'>Checkout</button></form>";
             }
             ?>
         </div>
@@ -88,5 +138,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_cart_id'])) {
     }
     ?>
 </div>
+<script>
+function updateCartQuantity(form, delta) {
+    const input = form.querySelector('input[name="set_quantity_value"]');
+    const max = parseInt(input.max) || 9999;
+    let val = parseInt(input.value) || (parseInt(input.min) || 1);
+    val += delta;
+    if (val > max) val = max;
+    input.value = val;
+    form.submit();
+}
+// Prevent double submit if JS triggers submit
+function handleCartQuantityFormSubmit(e, form) { return true; }
+</script>
 </body>
 </html>
