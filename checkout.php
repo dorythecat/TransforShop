@@ -1,5 +1,6 @@
 <?php
-if (!session_id() || empty($_SESSION['cart'])) {
+if (session_status() === PHP_SESSION_NONE) session_start();
+if (empty($_SESSION['cart'])) {
     header("Location: index.php");
     exit();
 }
