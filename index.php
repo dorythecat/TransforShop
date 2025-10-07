@@ -22,12 +22,17 @@ $shop_items=mysqli_query($db,"SELECT * FROM items");
 </div>
 
 <div id="product-list">
-    <div class="product-card">
-        <img src="https://placehold.co/512x512" alt="Product 1">
-        <h2>Product 1</h2>
-        <p>19.99€</p>
-        <button class="add-to-cart">Add to Cart</button>
-    </div>
+    <?php
+    while ($row = mysqli_fetch_array($shop_items)) {
+        $price=number_format($row['price'],2);
+        echo "<div class='product-card'>";
+        echo "<img src='{$row['image']}' alt='Product Image'>";
+        echo "<h2>{$row['name']}</h2>";
+        echo "<p>{$price}€</p>";
+        echo "<button class='add-to-cart'>Add to Cart</button>";
+        echo "</div>";
+    }
+    ?>
 </div>
 </body>
 </html>
