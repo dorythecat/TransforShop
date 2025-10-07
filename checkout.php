@@ -27,19 +27,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
     $email = mysqli_real_escape_string($db, $_POST['email']);
     $phone = mysqli_real_escape_string($db, $_POST['phone']);
     $notes = isset($_POST['notes']) ? mysqli_real_escape_string($db, $_POST['notes']) : '';
-    $order_items = [];
-    foreach ($_SESSION['cart'] as $order_item) {
-        // Query the name
-        $item_query = mysqli_query($db, "SELECT name FROM items WHERE id=$order_item;");
-        $item_name = "Unknown Item";
-        if ($item_row = mysqli_fetch_array($item_query)) $item_name = $item_row['name'];
-        $quantity = intval($order_item['quantity']);
-        $order_items[$item_name] = $quantity;
-    } $order_items = json_encode($order_items);
-    $total = number_format($subtotal + $shipping, 2, '.', '');
-    $insert_query = "INSERT INTO orders (name, address, postal_code, country, email, phone, items, subtotal, shipping, total, notes) 
-                     VALUES ('$name', '$address', '$postal_code', '$country', '$email', '$phone', '$order_items', '$subtotal', '$shipping', '$total', '$notes');";
-    mysqli_query($db, $insert_query);
+
+    // Fetch all cart items with preorder status
+    $item_ids = array_keys($_SESSION['cart']);
+    $ids_string = implode(',', array_map('intval', $item_ids));
+    $cart_items = [];
+    $cart_query = mysqli_query($db, "SELECT * FROM items WHERE id IN ($ids_string);");
+    while ($row = mysqli_fetch_array($cart_query)) {
+        $item_id = $row['id'];
+        $cart_items[$item_id] = $row;
+        $cart_items[$item_id]['quantity'] = $_SESSION['cart'][$item_id];
+    }
+
+    // Split into preorder and normal
+    $preorder_cart = [];
+    $normal_cart = [];
+    foreach ($cart_items as $item_id => $item) {
+        if (!empty($item['preorder'])) $preorder_cart[$item_id] = $item;
+        else $normal_cart[$item_id] = $item;
+    }
+
+    // Helper to calculate shipping
+    function calc_shipping($country) {
+        $shipping = 4.05;
+        $eu = ["Portugal", "United Kingdom", "Germany", "France", "Andorra", "Italy", "Belgium", "Netherlands", "Luxembourg", "Ireland", "Austria", "Isle of Mann", "Denmark", "Poland", "Czech Republic", "Slovakia", "Slovenia", "Hungary", "Romania", "Bulgaria", "Greece", "Croatia", "Finland", "Sweden", "Estonia", "Latvia", "Lithuania"];
+        $us_au = ["United States", "Australia", "Canada", "Japan", "New Zealand", "Russia"];
+        if ($country === "Spain") $shipping = 2.00;
+        else if (in_array($country, $eu)) $shipping = 3.00;
+        else if (in_array($country, $us_au)) $shipping = 5.00;
+        return $shipping;
+    }
+
+    // Place order for normal items
+    if (!empty($normal_cart)) {
+        $order_items = [];
+        $subtotal = 0.0;
+        foreach ($normal_cart as $item) {
+            $order_items[$item['name']] = intval($item['quantity']);
+            $subtotal += $item['price'] * $item['quantity'];
+        }
+        $shipping = calc_shipping($country);
+        $total = $subtotal + $shipping;
+        $subtotal_fmt = number_format($subtotal, 2, '.', '');
+        $shipping_fmt = number_format($shipping, 2, '.', '');
+        $total_fmt = number_format($total, 2, '.', '');
+        $order_items_json = json_encode($order_items);
+        $insert_query = "INSERT INTO orders (name, address, postal_code, country, email, phone, items, subtotal, shipping, total, notes) 
+                         VALUES ('$name', '$address', '$postal_code', '$country', '$email', '$phone', '$order_items_json', '$subtotal_fmt', '$shipping_fmt', '$total_fmt', '$notes');";
+        mysqli_query($db, $insert_query);
+    }
+
+    // Place order for preorder items
+    if (!empty($preorder_cart)) {
+        $order_items = [];
+        $subtotal = 0.0;
+        foreach ($preorder_cart as $item) {
+            $order_items[$item['name']] = intval($item['quantity']);
+            $subtotal += $item['price'] * $item['quantity'];
+        }
+        $shipping = calc_shipping($country);
+        $total = $subtotal + $shipping;
+        $subtotal_fmt = number_format($subtotal, 2, '.', '');
+        $shipping_fmt = number_format($shipping, 2, '.', '');
+        $total_fmt = number_format($total, 2, '.', '');
+        $order_items_json = json_encode($order_items);
+        $insert_query = "INSERT INTO orders (status, name, address, postal_code, country, email, phone, items, subtotal, shipping, total, notes) 
+                         VALUES ('preorder', '$name', '$address', '$postal_code', '$country', '$email', '$phone', '$order_items_json', '$subtotal_fmt', '$shipping_fmt', '$total_fmt', '$notes');";
+        mysqli_query($db, $insert_query);
+    }
+
     $_SESSION['cart'] = [];
     header("Location: index.php");
     exit();
