@@ -1,10 +1,10 @@
 <?php
-session_start();
+if (session_status() == PHP_SESSION_NONE) session_start();
+if (!isset($_SESSION['cart'])) $_SESSION['cart'] = [];
 $db=mysqli_connect("localhost","root","","transforshop");
 $shop_items=mysqli_query($db,"SELECT * FROM items ORDER BY stock DESC;");
 
 function addToCart($itemId) {
-    if (!isset($_SESSION['cart'])) $_SESSION['cart'] = [];
     if (isset($_SESSION['cart'][$itemId])) $_SESSION['cart'][$itemId]++;
     else $_SESSION['cart'][$itemId] = 1;
 }
