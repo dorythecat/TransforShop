@@ -7,6 +7,7 @@ if (!isset($_SESSION['cart']) || empty($_SESSION['cart'])) {
 $db = mysqli_connect("localhost", "root", "", "transforshop");
 if (!$db) die("Connection failed: " . mysqli_connect_error());
 $subtotal = 0.0;
+$shipping = 0.0;
 $item_ids = array_keys($_SESSION['cart']);
 if (!empty($item_ids)) {
     $ids_string = implode(',', array_map('intval', $item_ids));
@@ -35,50 +36,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
         $quantity = intval($order_item['quantity']);
         $order_items[$item_name] = $quantity;
     } $order_items = json_encode($order_items);
-    $shipping = 4.05;
-    switch ($country) {
-        case "Spain":
-            $shipping = 2;
-            break;
-            // All european countries
-        case "Portugal":
-        case "United Kingdom":
-        case "Germany":
-        case "France":
-        case "Andorra":
-        case "Italy":
-        case "Belgium":
-        case "Netherlands":
-        case "Luxembourg":
-        case "Ireland":
-        case "Austria":
-        case "Isle of Mann":
-        case "Denmark":
-        case "Poland":
-        case "Czech Republic":
-        case "Slovakia":
-        case "Slovenia":
-        case "Hungary":
-        case "Romania":
-        case "Bulgaria":
-        case "Greece":
-        case "Croatia":
-        case "Finland":
-        case "Sweden":
-        case "Estonia":
-        case "Latvia":
-        case "Lithuania":
-            $shipping = 3;
-            break;
-        case "United States":
-        case "Australia":
-        case "Canada":
-        case "Japan":
-        case "New Zealand":
-        case "Russia":
-            $shipping = 5;
-            break;
-    }
     $total = number_format($subtotal + $shipping, 2, '.', '');
     $insert_query = "INSERT INTO orders (name, address, postal_code, country, email, phone, items, subtotal, shipping, total, notes) 
                      VALUES ('$name', '$address', '$postal_code', '$country', '$email', '$phone', '$order_items', '$subtotal', '$shipping', '$total', '$notes');";
@@ -122,10 +79,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
               </tr>";
     }
     echo "<tr>
-          <td colspan='2'><strong>Total</strong></td>
-          <td><strong>" . number_format($total_price, 2) . "€</strong></td>
+          <td colspan='2'><strong>Subtotal</strong></td>
+          <td id='subtotal' class='price-col'><strong>" . number_format($subtotal, 2) . "€</strong></td>
           </tr>";
     ?>
+    <tr><td colspan='2'><strong>Shipping</strong></td><td id="shipping-cost" class="price-col placeholder"><span id='shipping-placeholder'>0.00€</span></td></tr>
+    <tr><td colspan='2'><strong>Total</strong></td><td id="total-cost" class="price-col placeholder"><span id='total-placeholder'>0.00€</span></td></tr>
 </table>
 <form id="checkout-form" method="POST">
     <input type="text" name="name" placeholder="Full Name" required><br>
@@ -384,5 +343,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
     <button type="submit">Place Order</button>
     <button type="button" onclick="window.location.href='index.php'">Continue Shopping</button>
 </form>
+<script>
+const shippingMap = {
+    'Spain': 2.00,
+    'Portugal': 3.00, 'United Kingdom': 3.00, 'Germany': 3.00, 'France': 3.00, 'Andorra': 3.00, 'Italy': 3.00, 'Belgium': 3.00, 'Netherlands': 3.00, 'Luxembourg': 3.00, 'Ireland': 3.00, 'Austria': 3.00, 'Isle of Mann': 3.00, 'Denmark': 3.00, 'Poland': 3.00, 'Czech Republic': 3.00, 'Slovakia': 3.00, 'Slovenia': 3.00, 'Hungary': 3.00, 'Romania': 3.00, 'Bulgaria': 3.00, 'Greece': 3.00, 'Croatia': 3.00, 'Finland': 3.00, 'Sweden': 3.00, 'Estonia': 3.00, 'Latvia': 3.00, 'Lithuania': 3.00,
+    'United States': 5.00, 'Australia': 5.00, 'Canada': 5.00, 'Japan': 5.00, 'New Zealand': 5.00, 'Russia': 5.00
+};
+const defaultShipping = 4.50;
+const subtotal = parseFloat(document.getElementById('subtotal').innerText.replace('€',''));
+const countrySelect = document.getElementById('country');
+const shippingCostTd = document.getElementById('shipping-cost');
+const totalCostTd = document.getElementById('total-cost');
+countrySelect.addEventListener('change', function() {
+    const country = countrySelect.value;
+    let shipping = defaultShipping;
+    if (shippingMap.hasOwnProperty(country)) shipping = shippingMap[country];
+    else if (country === 'Spain') shipping = 2.00;
+    shippingCostTd.innerHTML = `<strong>${shipping.toFixed(2)}€</strong>`;
+    totalCostTd.innerHTML = `<strong>${(subtotal + shipping).toFixed(2)}€</strong>`;
+    shippingCostTd.classList.remove('placeholder');
+    totalCostTd.classList.remove('placeholder');
+});
+</script>
 </body>
 </html>

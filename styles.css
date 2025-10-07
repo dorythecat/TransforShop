@@ -250,6 +250,17 @@ input[type=number] {
     text-align: left;
 }
 
+#checkout-table td.price-col, #checkout-table th.price-col {
+    width: 110px;
+    min-width: 90px;
+    max-width: 140px;
+}
+
+#checkout-table td.placeholder {
+    color: #aaa;
+    font-style: italic;
+}
+
 #checkout-table tr:first-child {
     vertical-align: middle;
     background-color: #999;
@@ -269,6 +280,40 @@ input[type=number] {
     align-items: center;
     gap: 10px;
     margin-top: 20px;
+    user-select: none;
+}
+
+#checkout-form input {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    width: 300px;
+    box-sizing: border-box;
+    transition: border-color 0.3s ease;
+}
+
+#checkout-form input:focus {
+    border-color: #28a745;
+    outline: none;
+}
+
+#checkout-form button {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+#checkout-form button:hover {
+    background-color: #218838;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+#checkout-form button:active {
+    background-color: #0e7e34;
 }
 
 @media (max-width: 600px) {
