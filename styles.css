@@ -18,6 +18,8 @@ h1 {
     background-color: #ccc;
     padding: 20px;
     border-radius: 20px;
+    position: relative;
+    z-index: 1000;
 }
 
 #cart-container {
@@ -25,6 +27,8 @@ h1 {
     align-items: center;
     cursor: pointer;
     transition: transform 0.3s ease;
+    position: relative;
+    z-index: 1000;
 }
 
 #cart-container:hover {
