@@ -404,24 +404,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
     <input type="text" name="phone" placeholder="Phone Number" required><br>
     <input type="text" name="notes" placeholder="Additional Notes (optional)"><br>
     <?php
+    $has_normal = false;
     $has_preorder = false;
     $item_ids = array_keys($_SESSION['cart']);
     if (!empty($item_ids)) {
         $ids_string = implode(',', array_map('intval', $item_ids));
         $cart_query = mysqli_query($db, "SELECT * FROM items WHERE id IN ($ids_string);");
         while ($row = mysqli_fetch_array($cart_query)) {
-            if (!empty($row['preorder'])) {
-                $has_preorder = true;
-                break;
-            }
+            if (empty($row['preorder'])) $has_normal = true;
+            if (!empty($row['preorder'])) $has_preorder = true;
         }
     }
-    if ($has_preorder) {
+    if ($has_normal && $has_preorder) {
         echo '<label for="preorder_separate" style="background-color:white;color:red">WARNING: PREORDER ITEMS ARE SENT WHEN MADE AVAILABLE BY DEFAULT. TO RECEIVE EVERYTHING AT THE SAME TIME (and not pay shipping two times) PLEASE UNCHECK THIS BOX.</label><br>';
         echo '<input type="checkbox" name="preorder_separate" id="preorder_separate" checked>';
-    } else {
-        echo '<input type="hidden" name="preorder_separate" value="0">';
-    }
+    } else echo '<input type="hidden" name="preorder_separate" value="0">';
     ?>
     <button type="submit">Place Order</button>
     <button type="button" onclick="window.location.href='index.php'">Continue Shopping</button>
