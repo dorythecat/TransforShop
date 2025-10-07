@@ -78,6 +78,16 @@ h1 {
     pointer-events: none;
 }
 
+.out-of-stock-label {
+    position: absolute;
+    color: red;
+    font-weight: bold;
+    user-select: none;
+    text-align: center;
+    font-size: 72px;
+    transform: translateY(50%) rotate(45deg);
+}
+
 .add-to-cart {
     background-color: #28a745;
     color: white;

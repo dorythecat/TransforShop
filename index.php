@@ -34,6 +34,7 @@ $shop_items=mysqli_query($db,"SELECT * FROM items");
             echo "</div>";
         } else {
             echo "<div class='product-card out-of-stock'>";
+            echo "<h1 class='out-of-stock-label'>Out of Stock</h1>";
             echo "<img src='{$row['image']}' alt='Product Image'>";
             echo "<h2>{$row['name']}</h2>";
             echo "<p>{$price}€</p>";
