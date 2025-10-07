@@ -1,6 +1,19 @@
 <?php
+session_start();
 $db=mysqli_connect("localhost","root","","transforshop");
 $shop_items=mysqli_query($db,"SELECT * FROM items");
+
+function addToCart($itemId) {
+    if (!isset($_SESSION['cart'])) $_SESSION['cart'] = [];
+
+    if (isset($_SESSION['cart'][$itemId])) $_SESSION['cart'][$itemId]++;
+    else $_SESSION['cart'][$itemId] = 1;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_cart_id'])) {
+    $itemId = intval($_POST['add_to_cart_id']);
+    addToCart($itemId);
+}
 ?>
 
 <!DOCTYPE html>
@@ -30,7 +43,10 @@ $shop_items=mysqli_query($db,"SELECT * FROM items");
             echo "<img src='{$row['image']}' alt='Product Image'>";
             echo "<h2>{$row['name']}</h2>";
             echo "<p>{$price}€</p>";
-            echo "<button class='add-to-cart'>Add to Cart</button>";
+            echo "<form method='POST' style='display:inline;'>";
+            echo "<input type='hidden' name='add_to_cart_id' value='{$row['id']}'>";
+            echo "<button class='add-to-cart' type='submit'>Add to Cart</button>";
+            echo "</form>";
             echo "</div>";
         } else {
             echo "<div class='product-card out-of-stock'>";
