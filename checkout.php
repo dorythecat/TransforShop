@@ -416,7 +416,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
         }
     }
     if ($has_normal && $has_preorder) {
-        echo '<label for="preorder_separate" style="background-color:white;color:red">WARNING: PREORDER ITEMS ARE SENT WHEN MADE AVAILABLE BY DEFAULT. TO RECEIVE EVERYTHING AT THE SAME TIME (and not pay shipping two times) PLEASE UNCHECK THIS BOX.</label><br>';
+        echo '<label for="preorder_separate" style="background-color:white;color:red;padding:20px;border-radius:10px;">WARNING: PREORDER ITEMS ARE SENT WHEN MADE AVAILABLE BY DEFAULT. TO RECEIVE EVERYTHING AT THE SAME TIME (and not pay shipping two times) PLEASE UNCHECK THIS BOX.</label><br>';
         echo '<input type="checkbox" name="preorder_separate" id="preorder_separate" checked>';
     } else echo '<input type="hidden" name="preorder_separate" value="0">';
     ?>
