@@ -42,6 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_cart_id'])) {
 <div id="product-list">
     <?php
     while ($row = mysqli_fetch_array($shop_items)) {
+        if (!$row['visible']) continue;
         $price=number_format($row['price'],2);
         if ($row['stock'] > 0) {
             echo "<div class='product-card'>";
