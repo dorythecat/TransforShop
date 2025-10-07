@@ -56,12 +56,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
 
     // Helper to calculate shipping
     function calc_shipping($country): float {
-        $shipping = 4.50;
-        $eu = ["Portugal", "United Kingdom", "Germany", "France", "Andorra", "Italy", "Belgium", "Netherlands", "Luxembourg", "Ireland", "Austria", "Isle of Mann", "Denmark", "Poland", "Czech Republic", "Slovakia", "Slovenia", "Hungary", "Romania", "Bulgaria", "Greece", "Croatia", "Finland", "Sweden", "Estonia", "Latvia", "Lithuania"];
-        $us_au = ["United States", "Australia", "Canada", "Japan", "New Zealand", "Russia"];
+        $shipping = 4.50; // Zone 2
+        $zone1 = ["Portugal", "United Kingdom", "Germany", "France", "Andorra", "Italy", "Belgium", "Netherlands", "Luxembourg", "Ireland", "Austria", "Isle of Mann", "Denmark", "Poland", "Czech Republic", "Slovakia", "Slovenia", "Hungary", "Romania", "Bulgaria", "Greece", "Croatia", "Finland", "Sweden", "Estonia", "Latvia", "Lithuania"];
+        $zone3 = ["United States", "Australia", "Canada", "Japan", "New Zealand", "Russia"];
         if ($country === "Spain") $shipping = 2.00;
-        else if (in_array($country, $eu)) $shipping = 3.00;
-        else if (in_array($country, $us_au)) $shipping = 5.00;
+        else if (in_array($country, $zone1)) $shipping = 3.00;
+        else if (in_array($country, $zone3)) $shipping = 5.00;
         return $shipping;
     }
 
@@ -424,12 +424,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
     <button type="button" onclick="window.location.href='index.php'">Continue Shopping</button>
 </form>
 <script>
-const shippingMap = {
-    'Spain': 2.00,
-    'Portugal': 3.00, 'United Kingdom': 3.00, 'Germany': 3.00, 'France': 3.00, 'Andorra': 3.00, 'Italy': 3.00, 'Belgium': 3.00, 'Netherlands': 3.00, 'Luxembourg': 3.00, 'Ireland': 3.00, 'Austria': 3.00, 'Isle of Mann': 3.00, 'Denmark': 3.00, 'Poland': 3.00, 'Czech Republic': 3.00, 'Slovakia': 3.00, 'Slovenia': 3.00, 'Hungary': 3.00, 'Romania': 3.00, 'Bulgaria': 3.00, 'Greece': 3.00, 'Croatia': 3.00, 'Finland': 3.00, 'Sweden': 3.00, 'Estonia': 3.00, 'Latvia': 3.00, 'Lithuania': 3.00,
-    'United States': 5.00, 'Australia': 5.00, 'Canada': 5.00, 'Japan': 5.00, 'New Zealand': 5.00, 'Russia': 5.00
-};
-const defaultShipping = 4.50;
+const zone1 = ['Portugal', 'United Kingdom', 'Germany', 'France', 'Andorra', 'Italy', 'Belgium', 'Netherlands', 'Luxembourg', 'Ireland', 'Austria', 'Isle of Mann', 'Denmark', 'Poland', 'Czech Republic', 'Slovakia', 'Slovenia', 'Hungary', 'Romania', 'Bulgaria', 'Greece', 'Croatia', 'Finland', 'Sweden', 'Estonia', 'Latvia', 'Lithuania'];
+// Zone 2 is everyone else except zone 1 and zone 3 and Spain
+const zone3 = ['United States', 'Australia', 'Canada', 'Japan', 'New Zealand', 'Russia'];
 const subtotal = parseFloat(document.getElementById('subtotal').innerText.replace('€',''));
 const countrySelect = document.getElementById('country');
 const shippingCostTd = document.getElementById('shipping-cost');
@@ -437,9 +434,10 @@ const totalCostTd = document.getElementById('total-cost');
 const preorderSeparate = document.getElementById('preorder_separate');
 function updateCosts() {
     const country = countrySelect.value;
-    let shipping = defaultShipping;
-    if (shippingMap.hasOwnProperty(country)) shipping = shippingMap[country];
-    else if (country === 'Spain') shipping = 2.00;
+    let shipping = 4.5; // Zone 2
+    if (country === 'Spain') shipping = 2.00;
+    else if (zone1.includes(country)) shipping = 3.00;
+    else if (zone3.includes(country)) shipping = 5.00;
     if (preorderSeparate && preorderSeparate.checked) shipping *= 2;
     shippingCostTd.innerHTML = `<strong>${shipping.toFixed(2)}€</strong>`;
     totalCostTd.innerHTML = `<strong>${(subtotal + shipping).toFixed(2)}€</strong>`;
