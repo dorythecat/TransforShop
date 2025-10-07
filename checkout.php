@@ -103,6 +103,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
         mysqli_query($db, $insert_query);
     }
 
+    // Remove items from stock
+    if (!empty($cart_items)) {
+        foreach ($cart_items as $item) {
+            $item_id = $item['id'];
+            $new_stock = max(0, $item['stock'] - $item['quantity']);
+            mysqli_query($db, "UPDATE items SET stock=$new_stock WHERE id=$item_id;");
+        }
+    }
+
     $_SESSION['cart'] = [];
     header("Location: index.php");
     exit();
