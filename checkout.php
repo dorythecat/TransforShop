@@ -70,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
         $order_items = [];
         $subtotal = 0.0;
         foreach ($normal_cart as $item) {
-            $order_items[$item['name']] = intval($item['quantity']);
+            $order_items[$item['id']] = intval($item['quantity']);
             $subtotal += $item['price'] * $item['quantity'];
         }
         $shipping = calc_shipping($country);
@@ -89,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
         $order_items = [];
         $subtotal = 0.0;
         foreach ($preorder_cart as $item) {
-            $order_items[$item['name']] = intval($item['quantity']);
+            $order_items[$item['id']] = intval($item['quantity']);
             $subtotal += $item['price'] * $item['quantity'];
         }
         $shipping = calc_shipping($country);
