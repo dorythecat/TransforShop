@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <header>
+    <header id="navbar">
         <h1>TransforShop Admin Login</h1>
     </header>
     <main>

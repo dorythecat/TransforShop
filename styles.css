@@ -382,6 +382,77 @@ input[type=number] {
     color: #218838;
 }
 
+.login-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    margin: 32px auto 0 auto;
+    padding: 32px 24px 24px 24px;
+    background: #f5f5f5;
+    border-radius: 18px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+    max-width: 320px;
+    min-width: 260px;
+}
+
+.error {
+    color: red;
+    font-weight: bold;
+    user-select: none;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+}
+
+.login-form input {
+    width: 100%;
+    padding: 12px 10px;
+    border: 1px solid #bbb;
+    border-radius: 6px;
+    font-size: 1rem;
+    background: #fff;
+    margin-bottom: 0;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+
+.login-form input:focus {
+    border-color: #28a745;
+    outline: none;
+}
+
+.login-form button {
+    background-color: #28a745;
+    color: #fff;
+    border: none;
+    padding: 12px 0;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    width: 100%;
+    margin-top: 8px;
+    margin-bottom: 0;
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s;
+    box-shadow: 0 2px 8px rgba(40,167,69,0.08);
+}
+
+.login-form button:hover {
+    background-color: #218838;
+}
+
+.login-form button:active {
+    background-color: #1e7e34;
+}
+
+.admin-panel {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
 .add-item {
     background-color: #007bff;
     color: white;
@@ -395,6 +466,7 @@ input[type=number] {
     user-select: none;
 }
 
+.login-form h2,
 .admin-panel h2 {
     font-size: 250%;
     user-select: none;
@@ -407,13 +479,6 @@ input[type=number] {
     width: fit-content;
     margin-left: auto;
     margin-right: auto;
-}
-
-.admin-panel {
-    width: 100%;
-    margin: 0;
-    padding: 0;
-    list-style: none;
 }
 
 .admin-panel table {
