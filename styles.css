@@ -396,14 +396,14 @@ input[type=number] {
     user-select: none;
 }
 
-.item-list {
+.admin-panel {
     width: 100%;
     margin: 0;
     padding: 0;
     list-style: none;
 }
 
-.item-list table {
+.admin-panel table {
     width: fit-content;
     margin-left: auto;
     margin-right: auto;
@@ -411,22 +411,22 @@ input[type=number] {
     border-collapse: collapse;
 }
 
-.item-list th, .item-list td {
+.admin-panel th, .admin-panel td {
     padding: 8px 12px;
     border: 1px solid #ddd;
     text-align: left;
 }
 
-.item-list th {
+.admin-panel th {
     background-color: #f2f2f2;
 }
 
-.item-list th:hover {
+.admin-panel th:hover {
     background-color: #e0e0e0;
     cursor: pointer;
 }
 
-.item-list td:hover {
+.admin-panel td:hover {
     background-color: #f1f1f1;
 }
 

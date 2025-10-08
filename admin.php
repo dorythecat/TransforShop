@@ -65,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
             <a href="?logout=true">Logout</a>
         </nav>
     </header>
-    <main>
+    <main class="admin-panel">
         <section class="add-item">
             <h2>Add New Item</h2>
             <form method="POST" action="">
