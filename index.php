@@ -41,7 +41,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Get max stock for this item
         $item_query = mysqli_query($db, "SELECT stock FROM items WHERE id=$itemId;");
         $maxStock = 0;
-        if ($item_row = mysqli_fetch_array($item_query)) $maxStock = $item_row['stock'];
+        if ($item_row = mysqli_fetch_array($item_query)) {
+            if ($item_row['preorders_left'] > 0) $maxStock = $item_row['preorders_left'];
+            else $maxStock = $item_row['stock'];
+        }
         setCartQuantity($itemId, $quantity, $maxStock);
     }
 
@@ -80,12 +83,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($item_row = mysqli_fetch_array($item_query)) {
                         $item_price = number_format($item_row['price'] * $quantity, 2);
                         $total_price += $item_row['price'] * $quantity;
+                        $max_items = $item_row['stock'];
+                        if ($item_row['preorders_left'] > 0) $max_items = $item_row['preorders_left'];
+                        if ($quantity > $max_items) { setCartQuantity($itemId, $max_items, $max_items); $quantity = $max_items; }
                         echo "<tr>";
                         echo "<td>{$item_row['name']}</td>";
                         echo "<td>";
                         echo "<form method='POST' style='display:inline-flex; align-items:center; gap:2px;' class='cart-quantity-form' onsubmit='return handleCartQuantityFormSubmit(event, this)'>";
                         echo "<button type='button' onclick='updateCartQuantity(this.form, -1)' style='width:28px;height:28px;'>-</button>";
-                        echo "<input type='number' name='set_quantity_value' value='$quantity' min='1' max='{$item_row['stock']}' style='width:40px; text-align:center;' onchange='this.form.submit()'>";
+                        echo "<input type='number' name='set_quantity_value' value='$quantity' min='1' max='{$max_items}' style='width:40px; text-align:center;' onchange='this.form.submit()'>";
                         echo "<input type='hidden' name='set_quantity_id' value='$itemId'>";
                         echo "<button type='button' onclick='updateCartQuantity(this.form, 1)' style='width:28px;height:28px;'>+</button>";
                         echo "</form> ";
