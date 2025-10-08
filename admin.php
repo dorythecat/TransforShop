@@ -59,10 +59,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <header>
+    <header id="navbar">
         <h1>TransforShop Admin Panel</h1>
         <nav>
-            <a href="admin.php">Dashboard</a>
             <a href="?logout=true">Logout</a>
         </nav>
     </header>

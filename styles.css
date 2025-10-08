@@ -22,6 +22,19 @@ h1 {
     z-index: 1000;
 }
 
+#navbar nav {
+    display: flex;
+    gap: 20px;
+}
+
+#navbar nav a {
+    text-decoration: none;
+    color: red;
+    font-weight: bold;
+    font-size: 1.2rem;
+    transition: color 0.3s ease;
+}
+
 #cart-container {
     justify-content: center;
     align-items: center;
