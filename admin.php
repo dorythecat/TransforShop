@@ -32,20 +32,52 @@ if (isset($_POST['add_item'])) {
     exit();
 }
 
+if (isset($_GET['send_order_id'])) {
+    $orderId = intval($_GET['send_order_id']);
+    $sent_time = date('Y-m-d H:i:s');
+    mysqli_query($db, "UPDATE orders SET status='sent', sent_time='$sent_time' WHERE id=$orderId;");
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit();
+}
+
+if (isset($_GET['delete_order_id'])) {
+    $orderId = intval($_GET['delete_order_id']);
+    mysqli_query($db, "DELETE FROM orders WHERE id=$orderId;");
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit();
+}
+
+function update($input, $allowed_fields, mysqli $db, $table_name): void {
+    if (!isset($input['id'], $input['field'], $input['value'])) {
+        echo json_encode(['success' => false, 'error' => 'Invalid input']);
+        exit();
+    }
+    $id = intval($input['id']);
+    $field = mysqli_real_escape_string($db, $input['field']);
+    $value = mysqli_real_escape_string($db, $input['value']);
+    if (in_array($field, $allowed_fields)) {
+        mysqli_query($db, "UPDATE $table_name SET $field='$value' WHERE id=$id;");
+        echo json_encode(['success' => true]);
+    } else echo json_encode(['success' => false, 'error' => 'Invalid field']);
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'application/json') !== false) {
+    if (!isset($_SERVER['HTTP_X_UPDATE_TYPE'])) {
+        echo json_encode(['success' => false, 'error' => 'Missing update type']);
+        exit();
+    }
     $input = json_decode(file_get_contents('php://input'), true);
-    if (isset($input['id'], $input['field'], $input['value'])) {
-        $id = intval($input['id']);
-        $field = mysqli_real_escape_string($db, $input['field']);
-        $value = mysqli_real_escape_string($db, $input['value']);
-        $allowed_fields = ['name', 'image', 'price', 'stock', 'preorders_left', 'visible'];
-        if (in_array($field, $allowed_fields)) {
-            if ($field === 'price') $value = floatval($value);
-            if (in_array($field, ['stock', 'preorders_left'])) $value = intval($value);
-            mysqli_query($db, "UPDATE items SET $field='$value' WHERE id=$id;");
-            echo json_encode(['success' => true]);
-        } else echo json_encode(['success' => false, 'error' => 'Invalid field']);
-    } else echo json_encode(['success' => false, 'error' => 'Invalid input']);
+    if ($_SERVER['HTTP_X_UPDATE_TYPE'] === 'item') {
+        update($input,
+               ['name', 'image', 'price', 'stock', 'preorders_left', 'visible'],
+               $db,
+              'items');
+    } else if ($_SERVER['HTTP_X_UPDATE_TYPE'] === 'order') {
+        update($input,
+               ['status', 'name', 'email', 'phone', 'address', 'country', 'postal_code', 'notes'],
+               $db,
+              'orders');
+    } else echo json_encode(['success' => false, 'error' => 'Invalid update type']);
     exit();
 }
 ?>
@@ -112,17 +144,110 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
                 </tbody>
             </table>
         </section>
+        <section class="order-list">
+            <h2>Orders</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Order Time</th>
+                        <th>Sent Time</th>
+                        <th>Status</th>
+                        <th>Items</th>
+                        <th>Subtotal</th>
+                        <th>Shipping</th>
+                        <th>Total</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone Number</th>
+                        <th>Address</th>
+                        <th>Country</th>
+                        <th>Postal Code</th>
+                        <th>Notes</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    $orders_query = mysqli_query($db, "SELECT * FROM orders ORDER BY order_time DESC;");
+                    while ($order = mysqli_fetch_array($orders_query)) {
+                        $items = json_decode($order['items'], true);
+                        $item_list = "<ul>";
+                        foreach ($items as $itemId => $quantity) {
+                            $item_query = mysqli_query($db, "SELECT * FROM items WHERE id=$itemId;");
+                            if ($item_row = mysqli_fetch_array($item_query)) {
+                                $item_price = number_format($item_row['price'] * $quantity, 2);
+                                $item_list .= "<li>{$item_row['name']} x $quantity ({$item_price}€)</li>";
+                            }
+                        }
+                        $item_list .= "</ul>";
+                        $subtotal = number_format($order['subtotal'], 2);
+                        $shipping = number_format($order['shipping'], 2);
+                        $total = number_format($subtotal + $order['shipping'], 2);
+                        $sent_time = $order['sent_time'] ? date('Y-m-d H:i:s', strtotime($order['sent_time'])) : 'N/A';
+                        echo "<tr>
+                            <td>{$order['id']}</td>
+                            <td>{$order['order_time']}</td>
+                            <td>{$sent_time}</td>
+                            <td>
+                                <select onchange='updateOrder({$order['id']}, \"status\", this.value)'>
+                                    <option value='preorder' " . ($order['status'] === 'preorder' ? 'selected' : '') . ">Preorder</option>
+                                    <option value='pending' " . ($order['status'] === 'pending' ? 'selected' : '') . ">Pending</option>
+                                    <option value='sent' " . ($order['status'] === 'sent' ? 'selected' : '') . ">Sent</option>
+                                    <option value='delivered' " . ($order['status'] === 'delivered' ? 'selected' : '') . ">Delivered</option>
+                                    <option value='cancelled' " . ($order['status'] === 'cancelled' ? 'selected' : '') . ">Cancelled</option>
+                                    <option value='refunded' " . ($order['status'] === 'refunded' ? 'selected' : '') . ">Refunded</option>
+                                </select>
+                            </td>
+                            <td>$item_list</td>
+                            <td>{$subtotal}€</td>
+                            <td>{$shipping}€</td>
+                            <td>{$total}€</td>
+                            <td contenteditable='true' onBlur='updateOrder({$order['id']}, \"name\", this.innerText)'>{$order['name']}</td>
+                            <td contenteditable='true' onBlur='updateOrder({$order['id']}, \"email\", this.innerText)'>{$order['email']}</td>
+                            <td contenteditable='true' onBlur='updateOrder({$order['id']}, \"phone\", this.innerText)'>{$order['phone']}</td>
+                            <td contenteditable='true' onBlur='updateOrder({$order['id']}, \"address\", this.innerText)'>{$order['address']}</td>
+                            <td contenteditable='true' onBlur='updateOrder({$order['id']}, \"country\", this.innerText)'>{$order['country']}</td>
+                            <td contenteditable='true' onBlur='updateOrder({$order['id']}, \"postal_code\", this.innerText)'>{$order['postal_code']}</td>
+                            <td contenteditable='true' onBlur='updateOrder({$order['id']}, \"notes\", this.innerText)'>{$order['notes']}</td>
+                            <td>
+                                " . ($order['status'] !== 'sent' ? "<a href='?send_order_id={$order['id']}' onclick='return confirm(\"Mark as sent?\")'>Mark as Sent</a> | " : "") . "
+                                <a href='?delete_order_id={$order['id']}' onclick='return confirm(\"Are you sure?\")'>Delete</a>
+                            </td>
+                        </tr>";
+                    }
+                    ?>
+                </tbody>
+            </table>
+        </section>
     </main>
 </body>
 <script>
 function updateItem(id, field, value) {
     fetch('admin.php', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Update-Type': 'item'
+        },
         body: JSON.stringify({ id: id, field: field, value: value })
     }).then(response => response.json()).then(data => {
           if (data.success) console.log('Item updated successfully');
           else alert('Error updating item: ' + data.error);
+    });
+}
+
+function updateOrder(id, field, value) {
+    fetch('admin.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Update-Type': 'order'
+        },
+        body: JSON.stringify({ id: id, field: field, value: value })
+    }).then(response => response.json()).then(data => {
+          if (data.success) console.log('Order updated successfully');
+          else alert('Error updating order: ' + data.error);
     });
 }
 </script>
