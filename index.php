@@ -2,6 +2,7 @@
 if (session_status() == PHP_SESSION_NONE) session_start();
 if (!isset($_SESSION['cart'])) $_SESSION['cart'] = [];
 $db=mysqli_connect("localhost","root","","transforshop");
+if (!$db) die("Connection failed: " . mysqli_connect_error());
 $shop_items=mysqli_query($db,"SELECT * FROM items ORDER BY stock DESC;");
 
 function addToCart($itemId) {
