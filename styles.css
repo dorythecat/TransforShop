@@ -396,6 +396,40 @@ input[type=number] {
     user-select: none;
 }
 
+.item-list {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.item-list table {
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+    background-color: #f9f9f9;
+    border-collapse: collapse;
+}
+
+.item-list th, .item-list td {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+.item-list th {
+    background-color: #f2f2f2;
+}
+
+.item-list th:hover {
+    background-color: #e0e0e0;
+    cursor: pointer;
+}
+
+.item-list td:hover {
+    background-color: #f1f1f1;
+}
+
 @media (max-width: 600px) {
     h1 {
         font-size: 200%;
