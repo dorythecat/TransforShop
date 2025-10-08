@@ -197,6 +197,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
                                     <option value='delivered' " . ($order['status'] === 'delivered' ? 'selected' : '') . ">Delivered</option>
                                     <option value='cancelled' " . ($order['status'] === 'cancelled' ? 'selected' : '') . ">Cancelled</option>
                                     <option value='refunded' " . ($order['status'] === 'refunded' ? 'selected' : '') . ">Refunded</option>
+                                    <option value='unpaid' " . ($order['status'] === 'unpaid' ? 'selected' : '') . ">Unpaid</option>
+                                    <option value='unpaid preorder' " . ($order['status'] === 'unpaid preorder' ? 'selected' : '') . ">Unpaid Preorder</option>
                                 </select>
                             </td>
                             <td>$item_list</td>

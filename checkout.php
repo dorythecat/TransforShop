@@ -68,55 +68,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
         return $shipping;
     }
 
-    Stripe\Stripe::setApiKey(STRIPE_API_KEY);
-
-    // Create the Stripe checkout session
-    try {
-        $checkout_session = Stripe\Checkout\Session::create([
-            'customer_email' => $email,
-            'shipping_options' => [
-                [
-                    'shipping_rate_data' => [
-                        'type' => 'fixed_amount',
-                        'fixed_amount' => [
-                            'amount' => intval(calc_shipping($country) * 100),
-                            'currency' => 'eur',
-                        ],
-                        'display_name' => 'Standard Shipping'
-                    ],
-                ],
-            ],
-            'line_items' => array_map(function($item_id) {
-                global $db;
-                $item_query = mysqli_query($db, "SELECT * FROM items WHERE id=$item_id;");
-                $item_row = mysqli_fetch_array($item_query);
-                $quantity = $_SESSION['cart'][$item_id];
-                return [
-                    'price_data' => [
-                        'currency' => 'eur',
-                        'product_data' => [
-                            'name' => $item_row['name'],
-                        ],
-                        'unit_amount' => intval($item_row['price'] * 100),
-                    ],
-                    'quantity' => $quantity,
-                ];
-            }, array_keys($cart_items)),
-            'mode' => 'payment',
-            'success_url' => 'http://localhost/index.php',
-            'cancel_url' => 'http://localhost/checkout.php',
-            'automatic_tax' => ['enabled' => true ]
-        ]);
-    } catch (\Stripe\Exception\ApiErrorException $e) {
-        die("Error creating Stripe checkout session: " . $e->getMessage());
-    }
-
-    header("HTTP/1.1 303 See Other");
-    header("Location: " . $checkout_session->url);
-
-    /*
-
-    // Place order for normal items
+    // Place order for normal items, but mark it as unpaid, store the ids so we can mark them as pending when paid
+    $ids = [];
     if (!empty($normal_cart)) {
         $order_items = [];
         $subtotal = 0.0;
@@ -130,9 +83,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
         $shipping_fmt = number_format($shipping, 2, '.', '');
         $total_fmt = number_format($total, 2, '.', '');
         $order_items_json = json_encode($order_items);
-        $insert_query = "INSERT INTO orders (name, address, postal_code, country, email, phone, items, subtotal, shipping, total, notes) 
-                         VALUES ('$name', '$address', '$postal_code', '$country', '$email', '$phone', '$order_items_json', '$subtotal_fmt', '$shipping_fmt', '$total_fmt', '$notes');";
+        $insert_query = "INSERT INTO orders (status, name, address, postal_code, country, email, phone, items, subtotal, shipping, total, notes) 
+                         VALUES ('unpaid', '$name', '$address', '$postal_code', '$country', '$email', '$phone', '$order_items_json', '$subtotal_fmt', '$shipping_fmt', '$total_fmt', '$notes');";
         mysqli_query($db, $insert_query);
+
+        $order_id_query = mysqli_query($db, "SELECT id FROM orders WHERE email='$email' AND items='$order_items_json' AND status='unpaid' ORDER BY id DESC LIMIT 1;");
+        $ids[] = mysqli_fetch_array($order_id_query)['id'];
     }
 
     // Place order for preorder items
@@ -150,8 +106,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
         $total_fmt = number_format($total, 2, '.', '');
         $order_items_json = json_encode($order_items);
         $insert_query = "INSERT INTO orders (status, name, address, postal_code, country, email, phone, items, subtotal, shipping, total, notes) 
-                         VALUES ('preorder', '$name', '$address', '$postal_code', '$country', '$email', '$phone', '$order_items_json', '$subtotal_fmt', '$shipping_fmt', '$total_fmt', '$notes');";
+                         VALUES ('unpaid preorder', '$name', '$address', '$postal_code', '$country', '$email', '$phone', '$order_items_json', '$subtotal_fmt', '$shipping_fmt', '$total_fmt', '$notes');";
         mysqli_query($db, $insert_query);
+
+        // Fetch order id
+        $order_id_query = mysqli_query($db, "SELECT id FROM orders WHERE email='$email' AND items='$order_items_json' AND status='unpaid preorder' ORDER BY id DESC LIMIT 1;");
+        $ids[] = mysqli_fetch_array($order_id_query)['id'];
 
         // Update preorders_left
         foreach ($preorder_cart as $item) {
@@ -170,10 +130,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
         }
     }
 
+    Stripe\Stripe::setApiKey(STRIPE_API_KEY);
+
+    // Create the Stripe checkout session
+    try {
+        $checkout_session = Stripe\Checkout\Session::create([
+                'customer_email' => $email,
+                'shipping_options' => [
+                        [
+                                'shipping_rate_data' => [
+                                        'type' => 'fixed_amount',
+                                        'fixed_amount' => [
+                                                'amount' => intval(calc_shipping($country) * 100),
+                                                'currency' => 'eur',
+                                        ],
+                                        'display_name' => 'Standard Shipping'
+                                ],
+                        ],
+                ],
+                'line_items' => array_map(function($item_id) {
+                    global $db;
+                    $item_query = mysqli_query($db, "SELECT * FROM items WHERE id=$item_id;");
+                    $item_row = mysqli_fetch_array($item_query);
+                    $quantity = $_SESSION['cart'][$item_id];
+                    return [
+                            'price_data' => [
+                                    'currency' => 'eur',
+                                    'product_data' => [
+                                            'name' => $item_row['name'],
+                                    ],
+                                    'unit_amount' => intval($item_row['price'] * 100),
+                            ],
+                            'quantity' => $quantity,
+                    ];
+                }, array_keys($cart_items)),
+                'mode' => 'payment',
+                'success_url' => 'http://localhost/index.php',
+                'cancel_url' => 'http://localhost/checkout.php',
+                'automatic_tax' => ['enabled' => true ],
+                'metadata' => ['order_ids' => implode(',', $ids)],
+        ]);
+    } catch (\Stripe\Exception\ApiErrorException $e) {
+        die("Error creating Stripe checkout session: " . $e->getMessage());
+    }
+
     $_SESSION['cart'] = [];
-    header("Location: index.php");
-    exit();
-    */
+    header("HTTP/1.1 303 See Other");
+    header("Location: " . $checkout_session->url);
 }
 ?>
 
