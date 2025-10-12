@@ -1,6 +1,7 @@
 <?php
+require_once 'secrets.php';
 if (session_status() == PHP_SESSION_NONE) session_start();
-$db = mysqli_connect("localhost", "root", "", "transforshop");
+$db = mysqli_connect(DB_HOST, DB_USER, DB_PASS, DB_DATABASE);
 if (!$db) die("Connection failed: " . mysqli_connect_error());
 $logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
 if (!$logged_in) {

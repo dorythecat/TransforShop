@@ -7,7 +7,7 @@ if (empty($_SESSION['cart'])) {
     header("Location: index.php");
     exit();
 }
-$db = mysqli_connect("localhost", "root", "", "transforshop");
+$db = mysqli_connect(DB_HOST, DB_USER, DB_PASS, DB_DATABASE);
 if (!$db) die("Connection failed: " . mysqli_connect_error());
 $subtotal = 0.0;
 $shipping = 0.0;

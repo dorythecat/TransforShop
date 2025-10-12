@@ -2,7 +2,7 @@
 // Receive the checkout.session.completed event from Stripe and fulfill the order
 require_once 'stripe-php/init.php';
 require_once 'secrets.php';
-$db = mysqli_connect("localhost", "root", "", "transforshop");
+$db = mysqli_connect(DB_HOST, DB_USER, DB_PASS, DB_DATABASE);
 if (!$db) die("Connection failed: " . mysqli_connect_error());
 
 if (!defined('STRIPE_API_KEY') || !defined('STRIPE_WEBHOOK_SECRET')) {

@@ -1,6 +1,6 @@
 <?php
 if (session_status() == PHP_SESSION_NONE) session_start();
-$db = mysqli_connect("localhost", "root", "", "transforshop");
+$db = mysqli_connect(DB_HOST, DB_USER, DB_PASS, DB_DATABASE);
 if (!$db) die("Connection failed: " . mysqli_connect_error());
 $login_error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
