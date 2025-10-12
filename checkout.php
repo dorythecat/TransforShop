@@ -165,8 +165,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
                     ];
                 }, array_keys($cart_items)),
                 'mode' => 'payment',
-                'success_url' => 'http://localhost/index.php',
-                'cancel_url' => 'http://localhost/checkout.php',
+                'success_url' => 'http://shop.transformate.live/index.php',
+                'cancel_url' => 'http://shop.transformate.live/checkout.php',
                 'automatic_tax' => ['enabled' => true ],
                 'metadata' => ['order_ids' => implode(',', $ids)],
         ]);
