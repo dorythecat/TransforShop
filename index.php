@@ -1,4 +1,6 @@
 <?php
+require_once 'secrets.php';
+
 if (session_status() == PHP_SESSION_NONE) session_start();
 if (!isset($_SESSION['cart'])) $_SESSION['cart'] = [];
 $db = mysqli_connect(DB_HOST, DB_USER, DB_PASS, DB_DATABASE);
