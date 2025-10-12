@@ -46,17 +46,15 @@ if (isset($_GET['delete_order_id'])) {
     $orderId = intval($_GET['delete_order_id']);
     $order_contents_query = mysqli_query($db, "SELECT status, items FROM orders WHERE id=$orderId;");
     $order_contents = mysqli_fetch_array($order_contents_query);
-    foreach ($order_contents as $order_content) {
-        $items = json_decode($order_content['items'], true);
+    if ($order_contents && in_array($order_contents['status'], array('preorder', 'unpaid preorder'))) {
+        $items = json_decode($order_contents['items'], true);
         foreach ($items as $itemId => $quantity) {
-            $itemId = intval($itemId);
-            $quantity = intval($quantity);
-            $item_query = mysqli_query($db, "SELECT stock, preorders_left FROM items WHERE id=$itemId;");
-            if ($item_row = mysqli_fetch_array($item_query)) {
-                if ($order_content['status'] === 'preorder' || $order_content['status'] === 'unpaid preorder')
-                    mysqli_query($db, "UPDATE items SET preorders_left=preorders_left + $quantity WHERE id=$itemId;");
-                else mysqli_query($db, "UPDATE items SET stock=stock + $quantity WHERE id=$itemId;");
-            }
+            mysqli_query($db, "UPDATE items SET preorders_left = preorders_left + $quantity WHERE id=$itemId;");
+        }
+    } elseif ($order_contents && in_array($order_contents['status'], ['pending', 'unpaid'])) {
+        $items = json_decode($order_contents['items'], true);
+        foreach ($items as $itemId => $quantity) {
+            mysqli_query($db, "UPDATE items SET stock = stock + $quantity WHERE id=$itemId;");
         }
     }
     mysqli_query($db, "DELETE FROM orders WHERE id=$orderId;");
