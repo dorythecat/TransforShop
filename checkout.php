@@ -200,16 +200,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
     </tr>
     <?php
     $item_ids = array_keys($_SESSION['cart']);
-    $cart_query = mysqli_query($db, "SELECT * FROM items WHERE id IN (" . implode(',', array_map('intval', $item_ids)) . ");");
-    while ($row = mysqli_fetch_array($cart_query)) {
-        $item_id = $row['id'];
-        $quantity = $_SESSION['cart'][$item_id];
-        $item_total = $row['price'] * $quantity;
-        echo "<tr>
-              <td>{$row['name']}</td>
-              <td>$quantity</td>
-              <td>" . number_format($item_total, 2) . "€</td>
-              </tr>";
+    if (!empty($item_ids)) {
+        $ids_string = implode(',', array_map('intval', $item_ids));
+        $cart_query = mysqli_query($db, "SELECT * FROM items WHERE id IN ($ids_string);");
+        while ($row = mysqli_fetch_array($cart_query)) {
+            $item_id = $row['id'];
+            $quantity = $_SESSION['cart'][$item_id];
+            $total_price = number_format($row['price'] * $quantity, 2);
+            echo "<tr>
+                  <td>" . htmlspecialchars($row['name']) . "</td>
+                  <td>" . intval($quantity) . "</td>
+                  <td class='price-col'>" . $total_price . "€</td>
+                  </tr>";
+        }
     }
     echo "<tr>
           <td colspan='2'><strong>Subtotal</strong></td>
