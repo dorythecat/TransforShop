@@ -200,8 +200,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
     </tr>
     <?php
     $item_ids = array_keys($_SESSION['cart']);
-    $ids_string = implode(',', array_map('intval', $item_ids));
-    $cart_query = mysqli_query($db, "SELECT * FROM items WHERE id IN ($ids_string);");
+    $cart_query = mysqli_query($db, "SELECT * FROM items WHERE id IN (" . implode(',', array_map('intval', $item_ids)) . ");");
     while ($row = mysqli_fetch_array($cart_query)) {
         $item_id = $row['id'];
         $quantity = $_SESSION['cart'][$item_id];
