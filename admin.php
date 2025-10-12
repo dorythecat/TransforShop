@@ -47,7 +47,7 @@ if (isset($_GET['delete_order_id'])) {
     $order_contents_query = mysqli_query($db, "SELECT status, items FROM orders WHERE id=$orderId;");
     $order_contents = mysqli_fetch_array($order_contents_query);
     foreach ($order_contents as $order_content) {
-        $items = json_decode($order_content.items, true);
+        $items = json_decode($order_content['items'], true);
         foreach ($items as $itemId => $quantity) {
             $itemId = intval($itemId);
             $quantity = intval($quantity);
