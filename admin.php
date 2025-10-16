@@ -117,6 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
             <h2>Add New Item</h2>
             <form method="POST" action="">
                 <input type="text" name="name" placeholder="Item Name" required>
+                <input type="text" name="description" placeholder="Description">
                 <input type="text" name="image" placeholder="Image URL">
                 <input type="number" step="0.01" name="price" placeholder="Price" required>
                 <input type="number" name="stock" placeholder="Stock">
@@ -131,6 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
                     <tr>
                         <th>ID</th>
                         <th>Name</th>
+                        <th>Description</th>
                         <th>Image</th>
                         <th>Price</th>
                         <th>Stock</th>
