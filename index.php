@@ -130,6 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($row['preorders_left'] > 0) echo "<h1 class='preorder-label'>Preorder</h1>";
             echo "<img src='{$row['image']}' alt='Product Image'>";
             echo "<h2>{$row['name']}</h2>";
+            echo "<p>{$row['description']}</p>";
             if ($row['preorders_left'] > 0) {
                 if ($row['preorders_left'] < 10) echo "<p style='color:red;'>Only {$row['preorders_left']} preorders left!</p>";
                 else echo "<p>Preorders left: {$row['preorders_left']}</p>";
@@ -148,6 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo "<h1 class='out-of-stock-label'>Out of Stock</h1>";
             echo "<img src='{$row['image']}' alt='Product Image'>";
             echo "<h2>{$row['name']}</h2>";
+            echo "<p>{$row['description']}</p>";
             echo "<p>{$price}€</p>";
             echo "<button class='add-to-cart' disabled>Out of Stock</button>";
         }

@@ -84,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
     $input = json_decode(file_get_contents('php://input'), true);
     if ($_SERVER['HTTP_X_UPDATE_TYPE'] === 'item') {
         update($input,
-               ['name', 'image', 'price', 'stock', 'preorders_left', 'visible'],
+               ['name', 'description', 'image', 'price', 'stock', 'preorders_left', 'visible'],
                $db,
               'items');
     } else if ($_SERVER['HTTP_X_UPDATE_TYPE'] === 'order') {
@@ -147,6 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
                         echo "<tr>
                             <td>{$item['id']}</td>
                             <td contenteditable='true' onBlur='updateItem({$item['id']}, \"name\", this.innerText)'>{$item['name']}</td>
+                            <td contenteditable='true' onBlur='updateItem({$item['id']}, \"description\", this.innerText)'>{$item['description']}</td>
                             <td contenteditable='true' onBlur='updateItem({$item['id']}, \"image\", this.innerText)'><img src='{$item['image']}' alt='{$item['name']}' width='50'></td>
                             <td contenteditable='true' onBlur='updateItem({$item['id']}, \"price\", this.innerText)'>{$item['price']}</td>
                             <td contenteditable='true' onBlur='updateItem({$item['id']}, \"stock\", this.innerText)'>{$item['stock']}</td>
