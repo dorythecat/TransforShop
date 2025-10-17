@@ -48,14 +48,14 @@ if (isset($_GET['delete_order_id'])) {
     $order_contents = mysqli_fetch_array($order_contents_query);
     if ($order_contents && in_array($order_contents['status'], array('preorder', 'unpaid preorder'))) {
         $items = json_decode($order_contents['items'], true);
-        foreach ($items as $itemId => $quantity) {
+        foreach ($items as $itemId => $quantity)
             mysqli_query($db, "UPDATE items SET preorders_left = preorders_left + $quantity WHERE id=$itemId;");
-        }
-    } elseif ($order_contents) {
+    }
+    // Even if it's a preorder, we still need to restock the items on deletion
+    if ($order_contents) {
         $items = json_decode($order_contents['items'], true);
-        foreach ($items as $itemId => $quantity) {
+        foreach ($items as $itemId => $quantity)
             mysqli_query($db, "UPDATE items SET stock = stock + $quantity WHERE id=$itemId;");
-        }
     }
     mysqli_query($db, "DELETE FROM orders WHERE id=$orderId;");
     header("Location: " . $_SERVER['PHP_SELF']);
