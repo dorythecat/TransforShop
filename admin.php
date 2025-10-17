@@ -61,18 +61,25 @@ if (isset($_GET['delete_order_id'])) {
     exit();
 }
 
-function update($input, $allowed_fields, mysqli $db, $table_name): void {
-    if (!isset($input['id'], $input['field'], $input['value'])) {
-        echo json_encode(['success' => false, 'error' => 'Invalid input']);
-        exit();
-    }
+/**
+ * Update a field in a database table for a given ID if the field is allowed.
+ *
+ * @param array $input The input data containing 'id', 'field', and 'value'.
+ * @param array $allowed_fields The list of fields that are allowed to be updated.
+ * @param mysqli $db The database connection.
+ * @param string $table_name The name of the table to update.
+ * @return string JSON encoded result indicating success or failure.
+ */
+function update($input, $allowed_fields, $db, $table_name): string {
+    if (!isset($input['id'], $input['field'], $input['value']))
+        return json_encode(['success' => false, 'error' => 'Invalid input']);
     $id = intval($input['id']);
     $field = mysqli_real_escape_string($db, $input['field']);
     $value = mysqli_real_escape_string($db, $input['value']);
     if (in_array($field, $allowed_fields)) {
         mysqli_query($db, "UPDATE $table_name SET $field='$value' WHERE id=$id;");
-        echo json_encode(['success' => true]);
-    } else echo json_encode(['success' => false, 'error' => 'Invalid field']);
+        return json_encode(['success' => true]);
+    } return json_encode(['success' => false, 'error' => 'Invalid field']);
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'application/json') !== false) {
@@ -82,15 +89,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
     }
     $input = json_decode(file_get_contents('php://input'), true);
     if ($_SERVER['HTTP_X_UPDATE_TYPE'] === 'item') {
-        update($input,
-               ['name', 'description', 'image', 'price', 'stock', 'preorders_left', 'visible'],
-               $db,
-              'items');
+        echo update($input,
+                   ['name', 'description', 'image', 'price', 'stock', 'preorders_left', 'visible'],
+                   $db,
+                  'items');
     } else if ($_SERVER['HTTP_X_UPDATE_TYPE'] === 'order') {
-        update($input,
-               ['status', 'name', 'email', 'phone', 'address', 'country', 'postal_code', 'notes'],
-               $db,
-              'orders');
+        echo update($input,
+                    ['status', 'name', 'email', 'phone', 'address', 'country', 'postal_code', 'notes'],
+                    $db,
+                    'orders');
     } else echo json_encode(['success' => false, 'error' => 'Invalid update type']);
     exit();
 }
