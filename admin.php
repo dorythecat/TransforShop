@@ -46,16 +46,15 @@ if (isset($_GET['delete_order_id'])) {
     $orderId = intval($_GET['delete_order_id']);
     $order_contents_query = mysqli_query($db, "SELECT status, items FROM orders WHERE id=$orderId;");
     $order_contents = mysqli_fetch_array($order_contents_query);
-    if ($order_contents && in_array($order_contents['status'], array('preorder', 'unpaid preorder'))) {
-        $items = json_decode($order_contents['items'], true);
-        foreach ($items as $itemId => $quantity)
-            mysqli_query($db, "UPDATE items SET preorders_left = preorders_left + $quantity WHERE id=$itemId;");
+    if (empty($order_contents)) { // Should NOT happen
+        header("Location: " . $_SERVER['PHP_SELF']);
+        exit();
     }
-    // Even if it's a preorder, we still need to restock the items on deletion
-    if ($order_contents) {
-        $items = json_decode($order_contents['items'], true);
-        foreach ($items as $itemId => $quantity)
-            mysqli_query($db, "UPDATE items SET stock = stock + $quantity WHERE id=$itemId;");
+    $items = json_decode($order_contents['items'], true);
+    $preorder = in_array($order_contents['status'], array('preorder', 'unpaid preorder'))
+    foreach ($items as $itemId => $quantity) {
+        mysqli_query($db, "UPDATE items SET stock = stock + $quantity WHERE id=$itemId;");
+        if ($preorder) mysqli_query($db, "UPDATE items SET preorders_left = preorders_left + $quantity WHERE id=$itemId;");
     }
     mysqli_query($db, "DELETE FROM orders WHERE id=$orderId;");
     header("Location: " . $_SERVER['PHP_SELF']);
