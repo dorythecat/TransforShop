@@ -51,7 +51,7 @@ if (isset($_GET['delete_order_id'])) {
         exit();
     }
     $items = json_decode($order_contents['items'], true);
-    $preorder = in_array($order_contents['status'], array('preorder', 'unpaid preorder'))
+    $preorder = in_array($order_contents['status'], array('preorder', 'unpaid preorder'));
     foreach ($items as $itemId => $quantity) {
         mysqli_query($db, "UPDATE items SET stock = stock + $quantity WHERE id=$itemId;");
         if ($preorder) mysqli_query($db, "UPDATE items SET preorders_left = preorders_left + $quantity WHERE id=$itemId;");
