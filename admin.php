@@ -207,12 +207,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
                         $item_list .= "</ul>";
                         $subtotal = number_format($order['subtotal'], 2);
                         $shipping = number_format($order['shipping'], 2);
-                        $total = number_format($subtotal + $order['shipping'], 2);
+                        $total = number_format($order['subtotal'] + $order['shipping'], 2);
                         $sent_time = $order['sent_time'] ? date('Y-m-d H:i:s', strtotime($order['sent_time'])) : 'N/A';
                         echo "<tr>
                             <td>{$order['id']}</td>
                             <td>{$order['order_time']}</td>
-                            <td>{$sent_time}</td>
+                            <td>$sent_time</td>
                             <td>
                                 <select onchange='updateOrder({$order['id']}, \"status\", this.value)'>
                                     <option value='preorder' " . ($order['status'] === 'preorder' ? 'selected' : '') . ">Preorder</option>
