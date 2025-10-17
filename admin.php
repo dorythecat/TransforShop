@@ -209,38 +209,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
                         $shipping = number_format($order['shipping'], 2);
                         $total = number_format($order['subtotal'] + $order['shipping'], 2);
                         $sent_time = $order['sent_time'] ? date('Y-m-d H:i:s', strtotime($order['sent_time'])) : 'N/A';
-                        echo "<tr>
-                            <td>{$order['id']}</td>
-                            <td>{$order['order_time']}</td>
-                            <td>$sent_time</td>
-                            <td>
-                                <select onchange='updateOrder({$order['id']}, \"status\", this.value)'>
-                                    <option value='preorder' " . ($order['status'] === 'preorder' ? 'selected' : '') . ">Preorder</option>
-                                    <option value='pending' " . ($order['status'] === 'pending' ? 'selected' : '') . ">Pending</option>
-                                    <option value='sent' " . ($order['status'] === 'sent' ? 'selected' : '') . ">Sent</option>
-                                    <option value='delivered' " . ($order['status'] === 'delivered' ? 'selected' : '') . ">Delivered</option>
-                                    <option value='cancelled' " . ($order['status'] === 'cancelled' ? 'selected' : '') . ">Cancelled</option>
-                                    <option value='refunded' " . ($order['status'] === 'refunded' ? 'selected' : '') . ">Refunded</option>
-                                    <option value='unpaid' " . ($order['status'] === 'unpaid' ? 'selected' : '') . ">Unpaid</option>
-                                    <option value='unpaid preorder' " . ($order['status'] === 'unpaid preorder' ? 'selected' : '') . ">Unpaid Preorder</option>
-                                </select>
-                            </td>
-                            <td>$item_list</td>
-                            <td>{$subtotal}€</td>
-                            <td>{$shipping}€</td>
-                            <td>{$total}€</td>
-                            <td contenteditable='true' onBlur='updateOrder({$order['id']}, \"name\", this.innerText)'>{$order['name']}</td>
-                            <td contenteditable='true' onBlur='updateOrder({$order['id']}, \"email\", this.innerText)'>{$order['email']}</td>
-                            <td contenteditable='true' onBlur='updateOrder({$order['id']}, \"phone\", this.innerText)'>{$order['phone']}</td>
-                            <td contenteditable='true' onBlur='updateOrder({$order['id']}, \"address\", this.innerText)'>{$order['address']}</td>
-                            <td contenteditable='true' onBlur='updateOrder({$order['id']}, \"country\", this.innerText)'>{$order['country']}</td>
-                            <td contenteditable='true' onBlur='updateOrder({$order['id']}, \"postal_code\", this.innerText)'>{$order['postal_code']}</td>
-                            <td contenteditable='true' onBlur='updateOrder({$order['id']}, \"notes\", this.innerText)'>{$order['notes']}</td>
-                            <td>
-                                " . ($order['status'] !== 'sent' ? "<a href='?send_order_id={$order['id']}' onclick='return confirm(\"Mark as sent?\")'>Mark as Sent</a> | " : "") . "
-                                <a href='?delete_order_id={$order['id']}' onclick='return confirm(\"Are you sure?\")'>Delete</a>
-                            </td>
-                        </tr>";
+                        echo "<tr>";
+                        echo "<td>{$order['id']}</td>";
+                        echo "<td>{$order['order_time']}</td>";
+                        echo "<td>$sent_time</td>";
+                        echo "<td><select onchange='updateOrder({$order['id']}, \"status\", this.value)'>";
+                        echo "<option value='preorder' " . ($order['status'] === 'preorder' ? 'selected' : '') . ">Preorder</option>";
+                        echo "<option value='pending' " . ($order['status'] === 'pending' ? 'selected' : '') . ">Pending</option>";
+                        echo "<option value='sent' " . ($order['status'] === 'sent' ? 'selected' : '') . ">Sent</option>";
+                        echo "<option value='delivered' " . ($order['status'] === 'delivered' ? 'selected' : '') . ">Delivered</option>";
+                        echo "<option value='cancelled' " . ($order['status'] === 'cancelled' ? 'selected' : '') . ">Cancelled</option>";
+                        echo "<option value='refunded' " . ($order['status'] === 'refunded' ? 'selected' : '') . ">Refunded</option>";
+                        echo "<option value='unpaid' " . ($order['status'] === 'unpaid' ? 'selected' : '') . ">Unpaid</option>";
+                        echo "<option value='unpaid preorder' " . ($order['status'] === 'unpaid preorder' ? 'selected' : '') . ">Unpaid Preorder</option>";
+                        echo "</select></td>";
+                        echo "<td>$item_list</td>";
+                        echo "<td>{$subtotal}€</td>";
+                        echo "<td>{$shipping}€</td>";
+                        echo "<td>{$total}€</td>";
+                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"name\", this.innerText)'>{$order['name']}</td>";
+                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"email\", this.innerText)'>{$order['email']}</td>";
+                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"phone\", this.innerText)'>{$order['phone']}</td>";
+                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"address\", this.innerText)'>{$order['address']}</td>";
+                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"country\", this.innerText)'>{$order['country']}</td>";
+                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"postal_code\", this.innerText)'>{$order['postal_code']}</td>";
+                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"notes\", this.innerText)'>{$order['notes']}</td>";
+                        echo "<td>";
+                        if ($order['status'] !== 'sent' && $order['status'] !== 'delivered')
+                            echo "<a href='?send_order_id={$order['id']}' onclick='return confirm(\"Mark order as sent?\")'>Mark as Sent</a> | ";
+                        echo "<a href='?delete_order_id={$order['id']}' onclick='return confirm(\"Are you sure?\")'>Delete</a>";
+                        echo "</td></tr>";
                     }
                     ?>
                 </tbody>
