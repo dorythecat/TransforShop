@@ -68,18 +68,168 @@ if (isset($_GET['delete_order_id'])) {
  * @param array $allowed_fields The list of fields that are allowed to be updated.
  * @param mysqli $db The database connection.
  * @param string $table_name The name of the table to update.
+ *
  * @return string JSON encoded result indicating success or failure.
  */
-function update($input, $allowed_fields, $db, $table_name): string {
+// TODO: Make total price auto-update when subtotal or shipping changes
+function update($input, $allowed_fields, $db, $table_name) {
     if (!isset($input['id'], $input['field'], $input['value']))
         return json_encode(['success' => false, 'error' => 'Invalid input']);
     $id = intval($input['id']);
     $field = mysqli_real_escape_string($db, $input['field']);
-    $value = mysqli_real_escape_string($db, $input['value']);
+    // Keep original (unescaped) value for special commands like 'refresh'
+    $raw_value = $input['value'];
+
+    // Special-case: support a 'refresh' request for item stock (no UPDATE, just return current stock)
+    if ($table_name === 'items' && $field === 'stock' && $raw_value === 'refresh') {
+        $res = mysqli_query($db, "SELECT stock FROM items WHERE id=$id;");
+        if ($res) {
+            $row = mysqli_fetch_array($res);
+            if ($row !== null) return json_encode(['success' => true, 'new_stock' => intval($row['stock'])]);
+        } return json_encode(['success' => false, 'error' => 'Item not found']);
+    }
+
+    $value = mysqli_real_escape_string($db, $raw_value);
     if (in_array($field, $allowed_fields)) {
         mysqli_query($db, "UPDATE $table_name SET $field='$value' WHERE id=$id;");
         return json_encode(['success' => true]);
     } return json_encode(['success' => false, 'error' => 'Invalid field']);
+}
+
+/**
+ * Handle order items update actions (add/update/remove). Expects $input['value'] to be a JSON string
+ * with at least an 'action' key: 'add'|'update'|'remove'.
+ * For 'add' provide 'item_id' and 'qty'. For 'update' provide 'item_id' and 'qty'. For 'remove' provide 'item_id'.
+ *
+ * @param array $input The input data containing 'id' and 'value'.
+ * @param mysqli $db The database connection.
+ *
+ * @return string JSON encoded result indicating success or failure, updated items, and subtotal.
+ */
+function updateOrderItems($input, $db) {
+    // Helper function as a closure to avoid global redeclare
+    $invalid_response = function($msg) { return json_encode(['success' => false, 'error' => "Invalid " . $msg]); };
+
+    if (!isset($input['id'], $input['value'])) return $invalid_response('input');
+    $orderId = intval($input['id']);
+    $payload = json_decode($input['value'], true);
+    if (!$payload || !isset($payload['action'])) return $invalid_response('payload');
+
+    // Fetch current items, status and shipping in one go
+    $res = mysqli_query($db, "SELECT items, status, shipping FROM orders WHERE id=$orderId;");
+    if (!$res) return $invalid_response('order');
+    $row = mysqli_fetch_array($res);
+    if (!$row) return $invalid_response('order');
+
+    $prev_items = [];
+    if (!empty($row['items'])) {
+        $prev_items = json_decode($row['items'], true);
+        if (!is_array($prev_items)) $prev_items = [];
+    }
+    $prev_preorder = in_array($row['status'], array('preorder', 'unpaid preorder'));
+
+    // Start from previous items map and apply action to produce new items
+    $items = $prev_items; // copy
+    $action = $payload['action'];
+    $item_id = isset($payload['item_id']) ? intval($payload['item_id']) : null;
+    $qty = isset($payload['qty']) ? intval($payload['qty']) : null;
+
+    switch ($action) {
+        case 'add':
+            if (!$item_id || $qty <= 0) return $invalid_response('add parameters');
+            $items[$item_id] = (isset($items[$item_id]) ? $items[$item_id] : 0) + $qty;
+            break;
+        case 'update':
+            if (!$item_id) return $invalid_response('update parameters');
+            if ($qty <= 0) unset($items[$item_id]); // remove if no units
+            else $items[$item_id] = $qty;
+            break;
+        case 'remove':
+            if (!$item_id) return $invalid_response('remove parameters');
+            unset($items[$item_id]);
+            break;
+        default:
+            return $invalid_response('action');
+    }
+
+    // Recalculate subtotal based on current item prices
+    $subtotal = 0.0;
+    $ids = array_keys($items);
+    $prices = [];
+    if (!empty($ids)) {
+        $ids_int = array_map('intval', $ids);
+        $ids_list = implode(',', $ids_int);
+        $prices_res = mysqli_query($db, "SELECT id, price FROM items WHERE id IN ($ids_list);");
+        if ($prices_res) while ($p = mysqli_fetch_array($prices_res)) $prices[intval($p['id'])] = floatval($p['price']);
+        foreach ($items as $iid => $q) {
+            $p = isset($prices[intval($iid)]) ? $prices[intval($iid)] : 0.0;
+            $subtotal += $p * intval($q);
+        }
+    }
+
+    // Prepare values for DB update
+    $items_json = mysqli_real_escape_string($db, json_encode($items));
+    $subtotal_val = floatval($subtotal);
+    $shipping_val = floatval($row['shipping']);
+    $total_val = $subtotal_val + $shipping_val;
+
+    // Start transaction
+    if (!mysqli_begin_transaction($db)) {
+        return json_encode(['success' => false, 'error' => 'Failed to start DB transaction']);
+    }
+
+    // Update orders table
+    $orders_update_sql = "UPDATE orders SET items='$items_json', subtotal=$subtotal_val, total=$total_val WHERE id=$orderId;";
+    if (!mysqli_query($db, $orders_update_sql)) {
+        mysqli_rollback($db);
+        return json_encode(['success' => false, 'error' => 'Failed to update order']);
+    }
+
+    // Compute deltas per item to adjust stock and preorders_left in a minimal number of updates
+    $all_ids = array_unique(array_merge(array_keys($prev_items), array_keys($items)));
+    if (!empty($all_ids)) {
+        // prepare statement once
+        $stmt = mysqli_prepare($db, "UPDATE items SET stock = stock + ?, preorders_left = preorders_left + ? WHERE id = ?;");
+        if ($stmt) {
+            foreach ($all_ids as $iid) {
+                $pid = intval($iid);
+                $prev_qty = isset($prev_items[$pid]) ? intval($prev_items[$pid]) : 0;
+                $new_qty = isset($items[$pid]) ? intval($items[$pid]) : 0;
+                $stock_delta = $prev_qty - $new_qty; // add this amount to stock
+                $preorders_delta = ($prev_preorder ? $prev_qty : 0) - ($prev_preorder ? $new_qty : 0);
+                if ($stock_delta === 0 && $preorders_delta === 0) continue; // nothing to do
+                if (!mysqli_stmt_bind_param($stmt, 'iii', $stock_delta, $preorders_delta, $pid) || !mysqli_stmt_execute($stmt)) {
+                    mysqli_stmt_close($stmt);
+                    mysqli_rollback($db);
+                    return json_encode(['success' => false, 'error' => 'Failed to update item ' . $pid]);
+                }
+            }
+            mysqli_stmt_close($stmt);
+        } else {
+            // Fallback: run individual queries if prepare fails
+            foreach ($all_ids as $iid) {
+                $pid = intval($iid);
+                $prev_qty = isset($prev_items[$pid]) ? intval($prev_items[$pid]) : 0;
+                $new_qty = isset($items[$pid]) ? intval($items[$pid]) : 0;
+                $stock_delta = $prev_qty - $new_qty;
+                $preorders_delta = ($prev_preorder ? $prev_qty : 0) - ($prev_preorder ? $new_qty : 0);
+                if ($stock_delta === 0 && $preorders_delta === 0) continue;
+                $q = "UPDATE items SET stock = stock + $stock_delta, preorders_left = preorders_left + $preorders_delta WHERE id=$pid;";
+                if (!mysqli_query($db, $q)) {
+                    mysqli_rollback($db);
+                    return json_encode(['success' => false, 'error' => 'Failed to update item ' . $pid]);
+                }
+            }
+        }
+    }
+
+    // Commit transaction
+    if (!mysqli_commit($db)) {
+        mysqli_rollback($db);
+        return json_encode(['success' => false, 'error' => 'Failed to commit transaction']);
+    }
+
+    return json_encode(['success' => true, 'items' => $items, 'subtotal' => $subtotal_val, 'total' => $total_val]);
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'application/json') !== false) {
@@ -94,10 +244,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
                    $db,
                   'items');
     } else if ($_SERVER['HTTP_X_UPDATE_TYPE'] === 'order') {
-        echo update($input,
-                    ['status', 'name', 'email', 'phone', 'address', 'country', 'postal_code', 'notes'],
-                    $db,
-                    'orders');
+        if (isset($input['field']) && $input['field'] === 'items') echo updateOrderItems($input, $db);
+        else {
+            echo update($input,
+                        ['status', 'name', 'subtotal', 'shipping', 'email', 'phone', 'address', 'country', 'postal_code', 'notes'],
+                        $db,
+                        'orders');
+        }
     } else echo json_encode(['success' => false, 'error' => 'Invalid update type']);
     exit();
 }
@@ -150,19 +303,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
                 <tbody>
                     <?php
                     $items_query = mysqli_query($db, "SELECT * FROM items;");
+                    // Build a map of all available items (id=>name) to use in order editors
+                    $all_items_map = array();
+                    $all_items_res = mysqli_query($db, "SELECT id, name FROM items;");
+                    while ($ai = mysqli_fetch_array($all_items_res)) $all_items_map[intval($ai['id'])] = $ai['name'];
+
                     while ($item = mysqli_fetch_array($items_query)) {
-                        // Allow editing of item details
-                        echo "<tr>
-                            <td>{$item['id']}</td>
-                            <td contenteditable='true' onBlur='updateItem({$item['id']}, \"name\", this.innerText)'>{$item['name']}</td>
-                            <td contenteditable='true' onBlur='updateItem({$item['id']}, \"description\", this.innerText)'>{$item['description']}</td>
-                            <td contenteditable='true' onBlur='updateItem({$item['id']}, \"image\", this.innerText)'><img src='{$item['image']}' alt='{$item['name']}' width='50'></td>
-                            <td contenteditable='true' onBlur='updateItem({$item['id']}, \"price\", this.innerText)'>{$item['price']}</td>
-                            <td contenteditable='true' onBlur='updateItem({$item['id']}, \"stock\", this.innerText)'>{$item['stock']}</td>
-                            <td contenteditable='true' onBlur='updateItem({$item['id']}, \"preorders_left\", this.innerText)'>{$item['preorders_left']}</td>
-                            <td><input type='checkbox' " . ($item['visible'] ? 'checked' : '') . " onchange='updateItem({$item['id']}, \"visible\", this.checked ? 1 : 0)'></td>
-                            <td><a href='?delete_item_id={$item['id']}' onclick='return confirm(\"Are you sure?\")'>Delete</a></td>
-                        </tr>";
+                        $id = (int)$item['id'];
+                        $name = htmlspecialchars($item['name']);
+                        $description = htmlspecialchars($item['description']);
+                        $image = htmlspecialchars($item['image']);
+                        $price = htmlspecialchars($item['price']);
+                        $stock = htmlspecialchars($item['stock']);
+                        $preorders_left = htmlspecialchars($item['preorders_left']);
+                        $visible_checked = !empty($item['visible']) ? 'checked' : '';
+
+                        echo "<tr data-item-id='$id'>\n";
+                        echo "<td>$id</td>\n";
+                        echo "<td contenteditable='true' onBlur='updateItem($id, \"name\", this.innerText)'>$name</td>\n";
+                        echo "<td contenteditable='true' onBlur='updateItem($id, \"description\", this.innerText)'>$description</td>\n";
+                        // Image preview + editable URL
+                        echo "<td>\n";
+                        echo "  <div style='display:flex; align-items:center; gap:8px;'>\n";
+                        echo "    <img src='$image' alt='$name' width='50' onError=\"this.src='https://placehold.co/50'\"/>\n";
+                        echo "    <div contenteditable='true' onBlur='updateItem($id, \"image\", this.innerText)'>$image</div>\n";
+                        echo "  </div>\n";
+                        echo "</td>\n";
+                        echo "<td contenteditable='true' onBlur='updateItem($id, \"price\", this.innerText)'>$price</td>\n";
+                        echo "<td contenteditable='true' onBlur='updateItem($id, \"stock\", this.innerText)'>$stock</td>\n";
+                        echo "<td contenteditable='true' onBlur='updateItem($id, \"preorders_left\", this.innerText)'>$preorders_left</td>\n";
+                        echo "<td><input type='checkbox' $visible_checked onchange='updateItem($id, \"visible\", this.checked ? 1 : 0)'></td>\n";
+                        echo "<td><a href='?delete_item_id=$id' onclick='return confirm(\"Are you sure?\")'>Delete</a></td>\n";
+                        echo "</tr>\n";
                     }
                     ?>
                 </tbody>
@@ -196,15 +368,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
                     $orders_query = mysqli_query($db, "SELECT * FROM orders ORDER BY order_time DESC;");
                     while ($order = mysqli_fetch_array($orders_query)) {
                         $items = json_decode($order['items'], true);
-                        $item_list = "<ul>";
-                        foreach ($items as $itemId => $quantity) {
-                            $item_query = mysqli_query($db, "SELECT * FROM items WHERE id=$itemId;");
-                            if ($item_row = mysqli_fetch_array($item_query)) {
-                                $item_price = number_format($item_row['price'] * $quantity, 2);
-                                $item_list .= "<li>{$item_row['name']} x $quantity ({$item_price}€)</li>";
-                            }
-                        }
-                        $item_list .= "</ul>";
+                        if (!is_array($items)) $items = [];
                         $subtotal = number_format($order['subtotal'], 2);
                         $shipping = number_format($order['shipping'], 2);
                         $total = number_format($order['subtotal'] + $order['shipping'], 2);
@@ -223,9 +387,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
                         echo "<option value='unpaid' " . ($order['status'] === 'unpaid' ? 'selected' : '') . ">Unpaid</option>";
                         echo "<option value='unpaid preorder' " . ($order['status'] === 'unpaid preorder' ? 'selected' : '') . ">Unpaid Preorder</option>";
                         echo "</select></td>";
-                        echo "<td>$item_list</td>";
-                        echo "<td>{$subtotal}€</td>";
-                        echo "<td>{$shipping}€</td>";
+                        echo "<td>";
+                        // Render editable items list: quantity inputs, remove buttons, and add controls
+                        echo "<div id='order-items-{$order['id']}' style='display:flex;flex-direction:column;gap:6px;'>";
+                        foreach ($items as $itemId => $quantity) {
+                            $item_query = mysqli_query($db, "SELECT name FROM items WHERE id=$itemId;");
+                            $item_row = mysqli_fetch_array($item_query);
+                            $item_name = $item_row ? htmlspecialchars($item_row['name']) : 'Unknown Item';
+                            echo "<div class='order-item' data-item-id='$itemId'>";
+                            echo "<span class='item-name'>$item_name</span> ";
+                            echo "<input type='number' min='0' value='$quantity' style='width:70px' onchange='updateOrderItem({$order['id']}, $itemId, this.value)'> ";
+                            echo "<button onclick='removeOrderItem({$order['id']}, $itemId); return false;'>X</button>";
+                            echo "</div>";
+                        }
+                        // Add item controls: dropdown populated from $all_items_map
+                        echo "<div style='margin-top:6px;display:flex;gap:6px;align-items:center;'>";
+                        echo "<select id='add-item-select-{$order['id']}'>";
+                        foreach ($all_items_map as $aid => $aname) {
+                            $aname_esc = htmlspecialchars($aname);
+                            echo "<option value='{$aid}'>{$aname_esc}</option>";
+                        }
+                        echo "</select>";
+                        echo "<input id='add-item-qty-{$order['id']}' type='number' min='1' value='1' style='width:60px;'>";
+                        echo "<button onclick='addOrderItem({$order['id']}); return false;'>Add</button>";
+                        echo "</div>";
+                        echo "</div>";
+                        echo "</td>";
+                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"subtotal\", this.innerText)'>{$subtotal}€</td>";
+                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"shipping\", this.innerText)'>{$shipping}€</td>";
                         echo "<td>{$total}€</td>";
                         echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"name\", this.innerText)'>{$order['name']}</td>";
                         echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"email\", this.innerText)'>{$order['email']}</td>";
@@ -247,6 +436,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
     </main>
 </body>
 <script>
+// Expose a client-side map of all items (id => name) for rendering
+var ALL_ITEMS = <?php echo json_encode($all_items_map); ?>;
+
 function updateItem(id, field, value) {
     fetch('admin.php', {
         method: 'POST',
@@ -272,6 +464,161 @@ function updateOrder(id, field, value) {
     }).then(response => response.json()).then(data => {
           if (data.success) console.log('Order updated successfully');
           else alert('Error updating order: ' + data.error);
+    });
+}
+
+function renderOrderItems(orderId, items) {
+    const container = document.getElementById('order-items-' + orderId);
+    let html = '';
+    for (let itemId in items) {
+        let qty = items[itemId];
+        let name = ALL_ITEMS[itemId] ? ALL_ITEMS[itemId] : 'Unknown Item';
+        html += "<div class='order-item' data-item-id='"+itemId+"'>";
+        html += "<span class='item-name'>" + escapeHtml(name) + "</span> ";
+        html += "<input type='number' min='0' value='"+qty+"' style='width:70px' onchange='updateOrderItem("+orderId+","+itemId+", this.value)'> ";
+        html += "<button onclick='removeOrderItem("+orderId+","+itemId+"); return false;'>X</button>";
+        html += "</div>";
+    }
+    // add controls
+    html += "<div style='margin-top:6px;display:flex;gap:6px;align-items:center;'>";
+    html += "<select id='add-item-select-"+orderId+"'>";
+    for (let aid in ALL_ITEMS) html += "<option value='"+aid+"'>"+escapeHtml(ALL_ITEMS[aid])+"</option>";
+    html += "</select>";
+    html += "<input id='add-item-qty-"+orderId+"' type='number' min='1' value='1' style='width:60px;'>";
+    html += "<button onclick='addOrderItem("+orderId+"); return false;'>+</button>";
+    html += "</div>";
+    container.innerHTML = html;
+}
+
+function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, function (s) {
+        return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]);
+    });
+}
+
+function updateOrderItem(orderId, itemId, qty) {
+    fetch('admin.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Update-Type': 'order'
+        },
+        body: JSON.stringify({
+            id: orderId, field: 'items', value: JSON.stringify({
+                action: 'update', item_id: itemId, qty: parseInt(qty,10)
+            })
+        })
+    }).then(r => r.json()).then(data => {
+        if (data.success) {
+            renderOrderItems(orderId, data.items);
+            // update subtotal cell
+            const subtotalCell = document.querySelector('#order-items-' + orderId).closest('td').nextElementSibling;
+            const totalCell = subtotalCell.nextElementSibling.nextElementSibling;
+            if (subtotalCell) subtotalCell.innerText = data.subtotal.toFixed(2) + '€';
+            if (totalCell) totalCell.innerText = data.total.toFixed(2) + '€';
+
+            // Update stock display if needed
+            const itemRow = document.querySelector("tr[data-item-id='" + itemId + "']");
+            if (!itemRow) return;
+            fetch('admin.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Update-Type': 'item'
+                },
+                body: JSON.stringify({ id: itemId, field: 'stock', value: 'refresh' })
+            }).then(r => r.json()).then(data => {
+                if (data.success) {
+                    const stockCell = itemRow.querySelector('td:nth-child(6)');
+                    if (stockCell) stockCell.innerText = data.new_stock;
+                } else alert('Error: ' + data.error);
+            });
+        } else alert('Error: ' + data.error);
+    });
+}
+
+function removeOrderItem(orderId, itemId) {
+    fetch('admin.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Update-Type': 'order'
+        },
+        body: JSON.stringify({
+            id: orderId, field: 'items', value: JSON.stringify({
+                action: 'remove', item_id: itemId
+            })
+        })
+    }).then(r => r.json()).then(data => {
+        if (data.success) {
+            renderOrderItems(orderId, data.items);
+            const subtotalCell = document.querySelector('#order-items-' + orderId).closest('td').nextElementSibling;
+            const totalCell = subtotalCell.nextElementSibling.nextElementSibling;
+            if (subtotalCell) subtotalCell.innerText = data.subtotal.toFixed(2) + '€';
+            if (totalCell) totalCell.innerText = data.total.toFixed(2) + '€';
+
+            // Update stock display if needed
+            const itemRow = document.querySelector("tr[data-item-id='" + itemId + "']");
+            if (!itemRow) return;
+            fetch('admin.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Update-Type': 'item'
+                },
+                body: JSON.stringify({ id: itemId, field: 'stock', value: 'refresh' })
+            }).then(r => r.json()).then(data => {
+                if (data.success) {
+                    const stockCell = itemRow.querySelector('td:nth-child(6)');
+                    if (stockCell) stockCell.innerText = data.new_stock;
+                } else alert('Error: ' + data.error);
+            });
+        } else alert('Error: ' + data.error);
+    });
+}
+
+function addOrderItem(orderId) {
+    const sel = document.getElementById('add-item-select-' + orderId);
+    const qtyInput = document.getElementById('add-item-qty-' + orderId);
+    let itemId = parseInt(sel.value, 10);
+    let qty = parseInt(qtyInput.value, 10);
+    if (!itemId || qty <= 0) { alert('Invalid item or quantity'); return; }
+    fetch('admin.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Update-Type': 'order'
+        },
+        body: JSON.stringify({
+            id: orderId, field: 'items', value: JSON.stringify({
+                action: 'add', item_id: itemId, qty: qty
+            })
+        })
+    }).then(r => r.json()).then(data => {
+        if (data.success) {
+            renderOrderItems(orderId, data.items);
+            const subtotalCell = document.querySelector('#order-items-' + orderId).closest('td').nextElementSibling;
+            const totalCell = subtotalCell.nextElementSibling.nextElementSibling;
+            if (subtotalCell) subtotalCell.innerText = data.subtotal.toFixed(2) + '€';
+            if (totalCell) totalCell.innerText = data.total.toFixed(2) + '€';
+
+            // Update stock display if needed
+            const itemRow = document.querySelector("tr[data-item-id='" + itemId + "']");
+            if (!itemRow) return;
+            fetch('admin.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Update-Type': 'item'
+                },
+                body: JSON.stringify({ id: itemId, field: 'stock', value: 'refresh' })
+            }).then(r => r.json()).then(data => {
+                if (data.success) {
+                    const stockCell = itemRow.querySelector('td:nth-child(6)');
+                    if (stockCell) stockCell.innerText = data.new_stock;
+                } else alert('Error: ' + data.error);
+            });
+        } else alert('Error: ' + data.error);
     });
 }
 </script>
