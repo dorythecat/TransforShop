@@ -83,14 +83,33 @@ function update($input, $allowed_fields, $db, $table_name) {
     // Special-case: support a 'refresh' request for item stock (no UPDATE, just return current stock)
     if ($table_name === 'items' && $field === 'stock' && $raw_value === 'refresh') {
         $res = mysqli_query($db, "SELECT stock FROM items WHERE id=$id;");
-        if ($res) {
-            $row = mysqli_fetch_array($res);
-            if ($row !== null) return json_encode(['success' => true, 'new_stock' => intval($row['stock'])]);
-        } return json_encode(['success' => false, 'error' => 'Item not found']);
+        if (!$res) return json_encode(['success' => false, 'error' => 'Item not found']);
+        $row = mysqli_fetch_array($res);
+        if ($row !== null) return json_encode(['success' => true, 'new_stock' => intval($row['stock'])]);
     }
 
-    $value = mysqli_real_escape_string($db, $raw_value);
+    // If updating an orders numeric field (subtotal or shipping), coerce to numeric and update without quotes,
+    // then recompute total and return the new numbers to the client so the UI can refresh.
     if (in_array($field, $allowed_fields)) {
+        if ($table_name === 'orders' && ($field === 'subtotal' || $field === 'shipping')) {
+            // Extract numeric value (allow digits, dot and minus)
+            $num = floatval(preg_replace('/[^0-9.\-]/', '', strval($raw_value)));
+            // Persist the numeric value
+            if (!mysqli_query($db, "UPDATE orders SET $field=$num WHERE id=$id;"))
+                return json_encode(['success' => false, 'error' => 'Failed to update order numeric field']);
+            // Re-fetch subtotal and shipping to compute total (in case only one was updated)
+            $res2 = mysqli_query($db, "SELECT subtotal, shipping FROM orders WHERE id=$id;");
+            $row2 = mysqli_fetch_array($res2);
+            $subtotal_v = floatval($row2['subtotal']);
+            $shipping_v = floatval($row2['shipping']);
+            $total_v = $subtotal_v + $shipping_v;
+            // Persist total
+            mysqli_query($db, "UPDATE orders SET total=$total_v WHERE id=$id;");
+            return json_encode(['success' => true, 'subtotal' => $subtotal_v, 'shipping' => $shipping_v, 'total' => $total_v]);
+        }
+
+        // Default behaviour: update as string/value
+        $value = mysqli_real_escape_string($db, $raw_value);
         mysqli_query($db, "UPDATE $table_name SET $field='$value' WHERE id=$id;");
         return json_encode(['success' => true]);
     } return json_encode(['success' => false, 'error' => 'Invalid field']);
@@ -462,8 +481,20 @@ function updateOrder(id, field, value) {
         },
         body: JSON.stringify({ id: id, field: field, value: value })
     }).then(response => response.json()).then(data => {
-          if (data.success) console.log('Order updated successfully');
-          else alert('Error updating order: ' + data.error);
+          if (!data.success) { alert('Error updating order: ' + data.error); return; }
+          // If the server returned updated subtotal/shipping/total, apply them to the row display
+          if (typeof data.total !== 'undefined') {
+              // Locate the subtotal cell based on the order-items container, then move to sibling cells
+              const orderItems = document.getElementById('order-items-' + id);
+              if (orderItems) {
+                  const subtotalCell = orderItems.closest('td').nextElementSibling;
+                  if (subtotalCell && typeof data.subtotal !== 'undefined') subtotalCell.innerText = parseFloat(data.subtotal).toFixed(2) + '€';
+                  const shippingCell = subtotalCell ? subtotalCell.nextElementSibling : null;
+                  if (shippingCell && typeof data.shipping !== 'undefined') shippingCell.innerText = parseFloat(data.shipping).toFixed(2) + '€';
+                  const totalCell = shippingCell ? shippingCell.nextElementSibling : null;
+                  if (totalCell) totalCell.innerText = parseFloat(data.total).toFixed(2) + '€';
+              }
+          } else console.log('Order updated successfully');
     });
 }
 
