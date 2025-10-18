@@ -47,10 +47,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
     $normal_cart = [];
     $has_preorder = false;
     foreach ($cart_items as $item) {
-        if ($item['preorders_left'] > 0) {
-            $has_preorder = true;
-            break;
-        }
+        if ($item['preorders_left'] <= 0) continue;
+        $has_preorder = true;
+        break;
     }
     foreach ($cart_items as $item_id => $item) {
         if (($has_preorder && !$_POST['preorder_separate']) || $item['preorders_left'] > 0) $preorder_cart[$item_id] = $item;
@@ -58,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
     }
 
     // Helper to calculate shipping
-    function calc_shipping($country): float {
+    function calc_shipping($country) {
         $shipping = 4.50; // Zone 2
         $zone1 = ["Portugal", "United Kingdom", "Germany", "France", "Andorra", "Italy", "Belgium", "Netherlands", "Luxembourg", "Ireland", "Austria", "Isle of Mann", "Denmark", "Poland", "Czech Republic", "Slovakia", "Slovenia", "Hungary", "Romania", "Bulgaria", "Greece", "Croatia", "Finland", "Sweden", "Estonia", "Latvia", "Lithuania"];
         $zone3 = ["United States", "Australia", "Canada", "Japan", "New Zealand", "Russia"];
@@ -70,64 +69,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
 
     // Place order for normal items, but mark it as unpaid, store the ids so we can mark them as pending when paid
     $ids = [];
-    if (!empty($normal_cart)) {
+
+    function place_order($db, &$ids, $cart, $status, $name, $address, $postal_code, $country, $email, $phone, $notes) {
         $order_items = [];
         $subtotal = 0.0;
-        foreach ($normal_cart as $item) {
+        foreach ($cart as $item) {
             $order_items[$item['id']] = intval($item['quantity']);
             $subtotal += $item['price'] * $item['quantity'];
         }
         $shipping = calc_shipping($country);
         $total = $subtotal + $shipping;
-        $subtotal_fmt = number_format($subtotal, 2, '.', '');
-        $shipping_fmt = number_format($shipping, 2, '.', '');
-        $total_fmt = number_format($total, 2, '.', '');
         $order_items_json = json_encode($order_items);
         $insert_query = "INSERT INTO orders (status, name, address, postal_code, country, email, phone, items, subtotal, shipping, total, notes) 
-                         VALUES ('unpaid', '$name', '$address', '$postal_code', '$country', '$email', '$phone', '$order_items_json', '$subtotal_fmt', '$shipping_fmt', '$total_fmt', '$notes');";
+                         VALUES ($status, '$name', '$address', '$postal_code', '$country', '$email', '$phone', '$order_items_json', '$subtotal', '$shipping', '$total', '$notes');";
         mysqli_query($db, $insert_query);
 
-        $order_id_query = mysqli_query($db, "SELECT id FROM orders WHERE email='$email' AND items='$order_items_json' AND status='unpaid' ORDER BY id DESC LIMIT 1;");
-        $ids[] = mysqli_fetch_array($order_id_query)['id'];
-    }
-
-    // Place order for preorder items
-    if (!empty($preorder_cart)) {
-        $order_items = [];
-        $subtotal = 0.0;
-        foreach ($preorder_cart as $item) {
-            $order_items[$item['id']] = intval($item['quantity']);
-            $subtotal += $item['price'] * $item['quantity'];
-        }
-        $shipping = calc_shipping($country);
-        $total = $subtotal + $shipping;
-        $subtotal_fmt = number_format($subtotal, 2, '.', '');
-        $shipping_fmt = number_format($shipping, 2, '.', '');
-        $total_fmt = number_format($total, 2, '.', '');
-        $order_items_json = json_encode($order_items);
-        $insert_query = "INSERT INTO orders (status, name, address, postal_code, country, email, phone, items, subtotal, shipping, total, notes) 
-                         VALUES ('unpaid preorder', '$name', '$address', '$postal_code', '$country', '$email', '$phone', '$order_items_json', '$subtotal_fmt', '$shipping_fmt', '$total_fmt', '$notes');";
-        mysqli_query($db, $insert_query);
-
-        // Fetch order id
-        $order_id_query = mysqli_query($db, "SELECT id FROM orders WHERE email='$email' AND items='$order_items_json' AND status='unpaid preorder' ORDER BY id DESC LIMIT 1;");
+        $order_id_query = mysqli_query($db, "SELECT id FROM orders WHERE email='$email' AND items='$order_items_json' AND status=$status ORDER BY id DESC LIMIT 1;");
         $ids[] = mysqli_fetch_array($order_id_query)['id'];
 
-        // Update preorders_left
-        foreach ($preorder_cart as $item) {
+        // Remove items from stock
+        foreach ($cart as $item) {
             $item_id = $item['id'];
+            $new_stock = max(0, $item['stock'] - $item['quantity']);
+            mysqli_query($db, "UPDATE items SET stock=$new_stock WHERE id=$item_id;");
+            // Also reduce preorders left if applicable
+            if ($item['preorders_left'] <= 0) continue;
             $new_preorders_left = max(0, $item['preorders_left'] - $item['quantity']);
             mysqli_query($db, "UPDATE items SET preorders_left=$new_preorders_left WHERE id=$item_id;");
         }
     }
 
-    // Remove items from stock
-    if (!empty($cart_items)) {
-        foreach ($cart_items as $item) {
-            $item_id = $item['id'];
-            $new_stock = max(0, $item['stock'] - $item['quantity']);
-            mysqli_query($db, "UPDATE items SET stock=$new_stock WHERE id=$item_id;");
-        }
+    // Place order for normal items
+    if (!empty($normal_cart)) {
+        place_order($db, $ids, $normal_cart, 'unpaid', $name, $address, $postal_code, $country, $email, $phone, $notes);
+    }
+
+    // Place order for preorder items
+    if (!empty($preorder_cart)) {
+        place_order($db, $ids, $preorder_cart, 'unpaid preorder', $name, $address, $postal_code, $country, $email, $phone, $notes);
     }
 
     Stripe\Stripe::setApiKey(STRIPE_API_KEY);
@@ -165,6 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
                     ];
                 }, array_keys($cart_items)),
                 'mode' => 'payment',
+                'currency' => 'eur',
                 'success_url' => 'http://shop.transformate.live/index.php',
                 'cancel_url' => 'http://shop.transformate.live/checkout.php',
                 'automatic_tax' => ['enabled' => true ],
