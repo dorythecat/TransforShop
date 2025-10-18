@@ -416,7 +416,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
                             echo "<div class='order-item' data-item-id='$itemId'>";
                             echo "<span class='item-name'>$item_name</span> ";
                             echo "<input type='number' min='0' value='$quantity' style='width:70px' onchange='updateOrderItem({$order['id']}, $itemId, this.value)'> ";
-                            echo "<button onclick='removeOrderItem({$order['id']}, $itemId); return false;'>X</button>";
+                            echo "<button onclick='removeOrderItem({$order['id']}, $itemId); return false;'>-</button>";
                             echo "</div>";
                         }
                         // Add item controls: dropdown populated from $all_items_map
@@ -428,7 +428,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
                         }
                         echo "</select>";
                         echo "<input id='add-item-qty-{$order['id']}' type='number' min='1' value='1' style='width:60px;'>";
-                        echo "<button onclick='addOrderItem({$order['id']}); return false;'>Add</button>";
+                        echo "<button onclick='addOrderItem({$order['id']}); return false;'>+</button>";
                         echo "</div>";
                         echo "</div>";
                         echo "</td>";
