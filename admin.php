@@ -29,7 +29,8 @@ if (isset($_POST['add_item'])) {
     if ($image === '') $image = 'https://placehold.co/512';
     if ($stock < 0) $stock = 0;
     if ($preorders_left < 0) $preorders_left = 0;
-    mysqli_query($db, "INSERT INTO items (name, image, price, stock, preorders_left) VALUES ('$name', '$image', $price, $stock, $preorders_left);");
+    mysqli_query($db, "INSERT INTO items (name, image, price, stock, preorders_left) VALUES
+                                               ('$name', '$image', $price, $stock, $preorders_left);");
     header("Location: " . $_SERVER['PHP_SELF']);
     exit();
 }
@@ -61,6 +62,10 @@ if (isset($_GET['delete_order_id'])) {
     exit();
 }
 
+// Helper functions for error responses
+function error_invalid($msg) { return json_encode(['success' => false, 'error' => "Invalid " . $msg]); }
+function error_failed_to($msg) { return json_encode(['success' => false, 'error' => "Failed to " . $msg]); }
+
 /**
  * Update a field in a database table for a given ID if the field is allowed.
  *
@@ -72,8 +77,7 @@ if (isset($_GET['delete_order_id'])) {
  * @return string JSON encoded result indicating success or failure.
  */
 function update($input, $allowed_fields, $db, $table_name) {
-    if (!isset($input['id'], $input['field'], $input['value']))
-        return json_encode(['success' => false, 'error' => 'Invalid input']);
+    if (!isset($input['id'], $input['field'], $input['value'])) return error_invalid('input');
     $id = intval($input['id']);
     $field = mysqli_real_escape_string($db, $input['field']);
     // Keep original (unescaped) value for special commands like 'refresh'
@@ -82,10 +86,12 @@ function update($input, $allowed_fields, $db, $table_name) {
     // Special-case: support a 'refresh' request for item stock (no UPDATE, just return current stock)
     if ($table_name === 'items' && $field === 'stock' && $raw_value === 'refresh') {
         $res = mysqli_query($db, "SELECT stock, preorders_left FROM items WHERE id=$id;");
-        if (!$res) return json_encode(['success' => false, 'error' => 'Item not found']);
+        if (!$res) return error_invalid('item');
         $row = mysqli_fetch_array($res);
-        if (empty($row)) return json_encode(['success' => false, 'error' => 'Item not found']);
-        return json_encode(['success' => true, 'stock' => intval($row['stock']), 'preorders_left' => intval($row['preorders_left'])]);
+        if (empty($row)) return error_invalid('item');
+        return json_encode(['success' => true,
+                            'stock' => intval($row['stock']),
+                            'preorders_left' => intval($row['preorders_left'])]);
     }
 
     // If updating an orders numeric field (subtotal or shipping), coerce to numeric and update without quotes,
@@ -96,23 +102,26 @@ function update($input, $allowed_fields, $db, $table_name) {
             $num = floatval(preg_replace('/[^0-9.\-]/', '', strval($raw_value)));
             // Persist the numeric value
             if (!mysqli_query($db, "UPDATE orders SET $field=$num WHERE id=$id;"))
-                return json_encode(['success' => false, 'error' => 'Failed to update order numeric field']);
+                return error_failed_to('update order');
             // Re-fetch subtotal and shipping to compute total (in case only one was updated)
             $res2 = mysqli_query($db, "SELECT subtotal, shipping FROM orders WHERE id=$id;");
             $row2 = mysqli_fetch_array($res2);
-            $subtotal_v = floatval($row2['subtotal']);
-            $shipping_v = floatval($row2['shipping']);
-            $total_v = $subtotal_v + $shipping_v;
+            $subtotal = floatval($row2['subtotal']);
+            $shipping = floatval($row2['shipping']);
+            $total = $subtotal + $shipping;
             // Persist total
-            mysqli_query($db, "UPDATE orders SET total=$total_v WHERE id=$id;");
-            return json_encode(['success' => true, 'subtotal' => $subtotal_v, 'shipping' => $shipping_v, 'total' => $total_v]);
+            mysqli_query($db, "UPDATE orders SET total=$total WHERE id=$id;");
+            return json_encode(['success' => true,
+                                'subtotal' => $subtotal,
+                                'shipping' => $shipping,
+                                'total' => $total]);
         }
 
         // Default behaviour: update as string/value
         $value = mysqli_real_escape_string($db, $raw_value);
         mysqli_query($db, "UPDATE $table_name SET $field='$value' WHERE id=$id;");
         return json_encode(['success' => true]);
-    } return json_encode(['success' => false, 'error' => 'Invalid field']);
+    } return error_invalid('field');
 }
 
 /**
@@ -126,19 +135,16 @@ function update($input, $allowed_fields, $db, $table_name) {
  * @return string JSON encoded result indicating success or failure, updated items, and subtotal.
  */
 function updateOrderItems($input, $db) {
-    // Helper function as a closure to avoid global redeclare
-    $invalid_response = function($msg) { return json_encode(['success' => false, 'error' => "Invalid " . $msg]); };
-
-    if (!isset($input['id'], $input['value'])) return $invalid_response('input');
+    if (!isset($input['id'], $input['value'])) return error_invalid('input');
     $orderId = intval($input['id']);
     $payload = json_decode($input['value'], true);
-    if (!$payload || !isset($payload['action'])) return $invalid_response('payload');
+    if (!$payload || !isset($payload['action'])) return error_invalid('payload');
 
     // Fetch current items, status and shipping in one go
     $res = mysqli_query($db, "SELECT items, status, shipping FROM orders WHERE id=$orderId;");
-    if (!$res) return $invalid_response('order');
+    if (!$res) return error_invalid('order');
     $row = mysqli_fetch_array($res);
-    if (!$row) return $invalid_response('order');
+    if (!$row) return error_invalid('order');
 
     $prev_items = [];
     if (!empty($row['items'])) {
@@ -155,20 +161,19 @@ function updateOrderItems($input, $db) {
 
     switch ($action) {
         case 'add':
-            if (!$item_id || $qty <= 0) return $invalid_response('add parameters');
+            if (!$item_id || $qty <= 0) return error_invalid('add parameters');
             $items[$item_id] = (isset($items[$item_id]) ? $items[$item_id] : 0) + $qty;
             break;
         case 'update':
-            if (!$item_id) return $invalid_response('update parameters');
+            if (!$item_id) return error_invalid('update parameters');
             if ($qty <= 0) unset($items[$item_id]); // remove if no units
             else $items[$item_id] = $qty;
             break;
         case 'remove':
-            if (!$item_id) return $invalid_response('remove parameters');
+            if (!$item_id) return error_invalid('remove parameters');
             unset($items[$item_id]);
             break;
-        default:
-            return $invalid_response('action');
+        default: return error_invalid('action');
     }
 
     // Recalculate subtotal based on current item prices
@@ -188,20 +193,17 @@ function updateOrderItems($input, $db) {
 
     // Prepare values for DB update
     $items_json = mysqli_real_escape_string($db, json_encode($items));
-    $subtotal_val = floatval($subtotal);
-    $shipping_val = floatval($row['shipping']);
-    $total_val = $subtotal_val + $shipping_val;
+    $shipping = floatval($row['shipping']);
+    $total = $subtotal + $shipping;
 
     // Start transaction
-    if (!mysqli_begin_transaction($db)) {
-        return json_encode(['success' => false, 'error' => 'Failed to start DB transaction']);
-    }
+    if (!mysqli_begin_transaction($db)) return error_failed_to('start db transaction');
 
     // Update orders table
-    $orders_update_sql = "UPDATE orders SET items='$items_json', subtotal=$subtotal_val, total=$total_val WHERE id=$orderId;";
+    $orders_update_sql = "UPDATE orders SET items='$items_json', subtotal=$subtotal, total=$total WHERE id=$orderId;";
     if (!mysqli_query($db, $orders_update_sql)) {
         mysqli_rollback($db);
-        return json_encode(['success' => false, 'error' => 'Failed to update order']);
+        return error_failed_to('update orders');
     }
 
     // Compute deltas per item to adjust stock and preorders_left in a minimal number of updates
@@ -217,10 +219,11 @@ function updateOrderItems($input, $db) {
                 $stock_delta = $prev_qty - $new_qty; // add this amount to stock
                 $preorders_delta = ($prev_preorder ? $prev_qty : 0) - ($prev_preorder ? $new_qty : 0);
                 if ($stock_delta === 0 && $preorders_delta === 0) continue; // nothing to do
-                if (!mysqli_stmt_bind_param($stmt, 'iii', $stock_delta, $preorders_delta, $pid) || !mysqli_stmt_execute($stmt)) {
+                if (!mysqli_stmt_bind_param($stmt, 'iii', $stock_delta, $preorders_delta, $pid) ||
+                        !mysqli_stmt_execute($stmt)) {
                     mysqli_stmt_close($stmt);
                     mysqli_rollback($db);
-                    return json_encode(['success' => false, 'error' => 'Failed to update item ' . $pid]);
+                    return error_failed_to('update orders');
                 }
             }
             mysqli_stmt_close($stmt);
@@ -236,7 +239,7 @@ function updateOrderItems($input, $db) {
                 $q = "UPDATE items SET stock = stock + $stock_delta, preorders_left = preorders_left + $preorders_delta WHERE id=$pid;";
                 if (!mysqli_query($db, $q)) {
                     mysqli_rollback($db);
-                    return json_encode(['success' => false, 'error' => 'Failed to update item ' . $pid]);
+                    return error_failed_to('update orders');
                 }
             }
         }
@@ -245,10 +248,14 @@ function updateOrderItems($input, $db) {
     // Commit transaction
     if (!mysqli_commit($db)) {
         mysqli_rollback($db);
-        return json_encode(['success' => false, 'error' => 'Failed to commit transaction']);
+        return error_failed_to('commit db transaction');
     }
 
-    return json_encode(['success' => true, 'items' => $items, 'subtotal' => $subtotal_val, 'total' => $total_val]);
+    // Return success with updated items and subtotal/total
+    return json_encode(['success' => true,
+                        'items' => $items,
+                        'subtotal' => $subtotal,
+                        'total' => $total]);
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'application/json') !== false) {
@@ -270,7 +277,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
                         $db,
                         'orders');
         }
-    } else echo json_encode(['success' => false, 'error' => 'Invalid update type']);
+    } else echo error_invalid('update type');
     exit();
 }
 ?>
@@ -341,7 +348,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
                         echo "<td contenteditable='true' onBlur='updateItem($id, \"price\", this.innerText)'>$price</td>";
                         echo "<td contenteditable='true' onBlur='updateItem($id, \"stock\", this.innerText)'>$stock</td>";
                         echo "<td contenteditable='true' onBlur='updateItem($id, \"preorders_left\", this.innerText)'>$preorders_left</td>";
-                        echo "<td><input type='checkbox' $visible_checked onchange='updateItem($id, \"visible\", this.checked ? 1 : 0)'></td>";
+                        echo "<td><input type='checkbox' $visible_checked onchange='updateItem($id, \"visible\", this.checked)'></td>";
                         echo "<td><a href='?delete_item_id=$id' onclick='return confirm(\"Are you sure?\")'>Delete</a></td></tr>";
                     }
                     ?>
@@ -368,15 +375,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
                         echo "<tr><td>{$order['id']}</td>";
                         echo "<td>" . date('d/m/Y H:m:s', strtotime($order['order_time'])) . "</td>";
                         echo "<td>" . ($order['sent_time'] ? date('d/m/Y H:m:s', strtotime($order['sent_time'])) : 'N/A') . "</td>";
+                        // Small helper to reduce clutter
+                        function sel($value) { global $order; return $order['status'] === $value ? 'selected' : ''; }
                         echo "<td><select onchange='updateOrder({$order['id']}, \"status\", this.value)'>";
-                        echo "<option value='preorder' " . ($order['status'] === 'preorder' ? 'selected' : '') . ">Preorder</option>";
-                        echo "<option value='pending' " . ($order['status'] === 'pending' ? 'selected' : '') . ">Pending</option>";
-                        echo "<option value='sent' " . ($order['status'] === 'sent' ? 'selected' : '') . ">Sent</option>";
-                        echo "<option value='delivered' " . ($order['status'] === 'delivered' ? 'selected' : '') . ">Delivered</option>";
-                        echo "<option value='cancelled' " . ($order['status'] === 'cancelled' ? 'selected' : '') . ">Cancelled</option>";
-                        echo "<option value='refunded' " . ($order['status'] === 'refunded' ? 'selected' : '') . ">Refunded</option>";
-                        echo "<option value='unpaid' " . ($order['status'] === 'unpaid' ? 'selected' : '') . ">Unpaid</option>";
-                        echo "<option value='unpaid preorder' " . ($order['status'] === 'unpaid preorder' ? 'selected' : '') . ">Unpaid Preorder</option>";
+                        echo "<option value='preorder' " . sel('preorder') . ">Preorder</option>";
+                        echo "<option value='pending' " . sel('pending') . ">Pending</option>";
+                        echo "<option value='sent' " . sel('sent') . ">Sent</option>";
+                        echo "<option value='delivered' " . sel('delivered') . ">Delivered</option>";
+                        echo "<option value='cancelled' " . sel('cancelled') . ">Cancelled</option>";
+                        echo "<option value='refunded' " . sel('refunded') . ">Refunded</option>";
+                        echo "<option value='unpaid' " . sel('unpaid') . ">Unpaid</option>";
+                        echo "<option value='unpaid preorder' " . sel('unpaid preorder') . ">Unpaid Preorder</option>";
                         echo "</select></td>";
                         // Render editable items list: quantity inputs, remove buttons, and add controls
                         echo "<td><div id='order-items-{$order['id']}' style='display:flex;flex-direction:column;gap:6px;'>";
@@ -386,12 +395,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
                             echo "<div class='order-item' data-item-id='$itemId'>";
                             echo "<span class='item-name'>" . ($item_row ? htmlspecialchars($item_row['name']) : 'Unknown Item') . "</span> ";
                             echo "<input type='number' min='0' value='$quantity' style='width:70px' onchange='updateOrderItem({$order['id']}, $itemId, this.value)'> ";
-                            echo "<button onclick='removeOrderItem({$order['id']}, $itemId); return false;'>-</button></div>";
+                            echo "<button onclick='removeOrderItem({$order['id']}, $itemId); return false;'>X</button></div>";
                         }
-                        // Add item controls: dropdown populated from $all_items_map
-                        echo "<div style='margin-top:6px;display:flex;gap:6px;align-items:center;'>";
-                        echo "<select id='add-item-select-{$order['id']}'>";
-                        foreach ($all_items_map as $aid => $aname) echo "<option value='$aid'>" . htmlspecialchars($aname) . "</option>";
+                        // Add item controls
+                        echo "<div class='add-order-item'><select id='add-item-select-{$order['id']}'>";
+                        foreach ($all_items_map as $id => $name) echo "<option value='$id'>" . htmlspecialchars($name) . "</option>";
                         echo "</select>";
                         echo "<input id='add-item-qty-{$order['id']}' type='number' min='1' value='1' style='width:60px;'>";
                         echo "<button onclick='addOrderItem({$order['id']}); return false;'>+</button></div></div></td>";
@@ -421,6 +429,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
 const ALL_ITEMS = <?php echo json_encode($all_items_map); ?>;
 
 function updateItem(id, field, value) {
+    if (field === 'visible') value = value ? 1 : 0;
+    value = value.toString().trim();
     fetch('admin.php', {
         method: 'POST',
         headers: {
@@ -443,20 +453,16 @@ function updateOrder(id, field, value) {
         },
         body: JSON.stringify({ id: id, field: field, value: value })
     }).then(response => response.json()).then(data => {
-          if (!data.success) { alert('Error updating order: ' + data.error); return; }
-          // If the server returned updated subtotal/shipping/total, apply them to the row display
-          if (typeof data.total !== 'undefined') {
-              // Locate the subtotal cell based on the order-items container, then move to sibling cells
-              const orderItems = document.getElementById('order-items-' + id);
-              if (orderItems) {
-                  const subtotalCell = orderItems.closest('td').nextElementSibling;
-                  if (typeof data.subtotal !== 'undefined') subtotalCell.innerText = parseFloat(data.subtotal).toFixed(2) + '€';
-                  const shippingCell = subtotalCell ? subtotalCell.nextElementSibling : null;
-                  if (typeof data.shipping !== 'undefined') shippingCell.innerText = parseFloat(data.shipping).toFixed(2) + '€';
-                  const totalCell = shippingCell ? shippingCell.nextElementSibling : null;
-                  totalCell.innerText = parseFloat(data.total).toFixed(2) + '€';
-              }
-          } else console.log('Order updated successfully');
+        if (!data.success) { alert('Error updating order: ' + data.error); return; }
+        if (typeof data.total === 'undefined') { console.log('Order updated successfully'); return; }
+        const orderItems = document.getElementById('order-items-' + id);
+        if (!orderItems) return;
+        const subtotalCell = orderItems.closest('td').nextElementSibling;
+        if (typeof data.subtotal !== 'undefined') subtotalCell.innerText = parseFloat(data.subtotal).toFixed(2) + '€';
+        const shippingCell = subtotalCell ? subtotalCell.nextElementSibling : null;
+        if (typeof data.shipping !== 'undefined') shippingCell.innerText = parseFloat(data.shipping).toFixed(2) + '€';
+        const totalCell = shippingCell ? shippingCell.nextElementSibling : null;
+        totalCell.innerText = parseFloat(data.total).toFixed(2) + '€';
     });
 }
 
@@ -466,17 +472,14 @@ function renderOrderItems(orderId, items) {
     for (const itemId in items) {
         html += "<div class='order-item' data-item-id='"+itemId+"'>";
         html += "<span class='item-name'>" + escapeHtml(ALL_ITEMS[itemId] ? ALL_ITEMS[itemId] : 'Unknown Item') + "</span>";
-        html += "<input type='number' min='0' value='"+items[itemId]+"' style='width:70px' onchange='updateOrderItem("+orderId+","+itemId+", this.value)'>";
+        html += "<input type='number' min='0' value='"+items[itemId]+"' onchange='updateOrderItem("+orderId+","+itemId+", this.value)'>";
         html += "<button onclick='removeOrderItem("+orderId+","+itemId+"); return false;'>X</button></div>";
     }
     // Controls to add new items
-    html += "<div style='margin-top:6px;display:flex;gap:6px;align-items:center;'>";
-    html += "<select id='add-item-select-"+orderId+"'>";
+    html += "<div class='add-order-item'><select id='add-item-select-"+orderId+"'>";
     for (const id in ALL_ITEMS) html += "<option value='"+id+"'>"+escapeHtml(ALL_ITEMS[id])+"</option>";
-    html += "</select>";
-    html += "<input id='add-item-qty-"+orderId+"' type='number' min='1' value='1' style='width:60px;'>";
-    html += "<button onclick='addOrderItem("+orderId+"); return false;'>+</button>";
-    html += "</div>";
+    html += "</select><input id='add-item-qty-"+orderId+"' type='number' min='1' value='1'>";
+    html += "<button onclick='addOrderItem("+orderId+"); return false;'>+</button></div>";
     container.innerHTML = html;
 }
 

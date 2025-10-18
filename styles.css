@@ -9,6 +9,10 @@ h1 {
     user-select: none;
 }
 
+th {
+    text-align: center;
+}
+
 #navbar {
     display: flex;
     justify-content: center;
@@ -517,6 +521,29 @@ input[type=number] {
 
 .admin-panel td:hover {
     background-color: #f1f1f1;
+}
+
+.add-order-item {
+    display: flex;
+    margin-top: 6px;
+    gap: 6px;
+    align-items: center;
+}
+
+.order-item .item-name {
+    width: 150px;
+    text-align: left;
+    background-color: #ccc;
+    margin: 2px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px #aaa;
+    user-select: none;
+}
+
+.order-item input[type=number],
+.add-order-item input[type=number] {
+    width:70px
 }
 
 @media (max-width: 600px) {
