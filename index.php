@@ -84,11 +84,11 @@ if (!empty($_SESSION['cart'])) {
                 $quantity = $max_items;
             }
             echo "<tr><td>" . htmlspecialchars($item_row['name']) . "</td><td>";
-            echo "<form method='POST' style='display:inline-flex; align-items:center; gap:2px;' class='cart-quantity-form' onsubmit='return true'>";
-            echo "<button type='button' onclick='updateCartQuantity(this.form, -1)' style='width:28px;height:28px;'>-</button>";
-            echo "<input type='number' name='set_quantity_value' value='$quantity' min='1' max='$max_items' style='width:40px; text-align:center;' onchange='this.form.submit()'>";
+            echo "<form method='POST' class='cart-quantity-form' onsubmit='return true'>";
+            echo "<button type='button' onclick='updateCartQuantity(this.form, -1)'>-</button>";
+            echo "<input type='number' name='set_quantity_value' value='$quantity' min='1' max='$max_items' onchange='this.form.submit()'>";
             echo "<input type='hidden' name='set_quantity_id' value='$itemId'>";
-            echo "<button type='button' onclick='updateCartQuantity(this.form, 1)' style='width:28px;height:28px;'>+</button></form></td>";
+            echo "<button type='button' onclick='updateCartQuantity(this.form, 1)'>+</button></form></td>";
             echo "<td>" . number_format($item_row['price'] * $quantity, 2) . "€</td>";
             echo "<td><form method='POST' style='display:inline;'>";
             echo "<input type='hidden' name='set_quantity_id' value='$itemId'>";
@@ -120,7 +120,7 @@ while ($row = mysqli_fetch_array($shop_items)) {
     } echo "<p>" . number_format($row['price'], 2) . "€</p>";
     if ($row['stock'] > 0) {
         echo "<form method='POST' style='display:inline;'>";
-        echo "+<input type='hidden' name='add_to_cart_id' value='{$row['id']}'>";
+        echo "<input type='hidden' name='add_to_cart_id' value='{$row['id']}'>";
         echo "<button class='add-to-cart' type='submit'>Add to Cart</button>";
     } else echo "<button class='add-to-cart' type='button' disabled>Out of Stock</button>";
     echo "</form></div>";
