@@ -81,10 +81,11 @@ function update($input, $allowed_fields, $db, $table_name) {
 
     // Special-case: support a 'refresh' request for item stock (no UPDATE, just return current stock)
     if ($table_name === 'items' && $field === 'stock' && $raw_value === 'refresh') {
-        $res = mysqli_query($db, "SELECT stock FROM items WHERE id=$id;");
+        $res = mysqli_query($db, "SELECT stock, preorders_left FROM items WHERE id=$id;");
         if (!$res) return json_encode(['success' => false, 'error' => 'Item not found']);
         $row = mysqli_fetch_array($res);
-        if ($row !== null) return json_encode(['success' => true, 'new_stock' => intval($row['stock'])]);
+        if (empty($row)) return json_encode(['success' => false, 'error' => 'Item not found']);
+        return json_encode(['success' => true, 'stock' => intval($row['stock']), 'preorders_left' => intval($row['preorders_left'])]);
     }
 
     // If updating an orders numeric field (subtotal or shipping), coerce to numeric and update without quotes,
@@ -560,7 +561,9 @@ function updateOrderItem(orderId, itemId, qty) {
             }).then(r => r.json()).then(data => {
                 if (data.success) {
                     const stockCell = itemRow.querySelector('td:nth-child(6)');
-                    stockCell.innerText = data.new_stock;
+                    const preorderCell = itemRow.querySelector('td:nth-child(7)');
+                    stockCell.innerText = data.stock;
+                    preorderCell.innerText = data.preorders_left;
                 } else alert('Error: ' + data.error);
             });
         } else alert('Error: ' + data.error);
@@ -600,7 +603,9 @@ function removeOrderItem(orderId, itemId) {
             }).then(r => r.json()).then(data => {
                 if (data.success) {
                     const stockCell = itemRow.querySelector('td:nth-child(6)');
-                    stockCell.innerText = data.new_stock;
+                    const preorderCell = itemRow.querySelector('td:nth-child(7)');
+                    stockCell.innerText = data.stock;
+                    preorderCell.innerText = data.preorders_left;
                 } else alert('Error: ' + data.error);
             });
         } else alert('Error: ' + data.error);
@@ -645,7 +650,9 @@ function addOrderItem(orderId) {
             }).then(r => r.json()).then(data => {
                 if (data.success) {
                     const stockCell = itemRow.querySelector('td:nth-child(6)');
-                    stockCell.innerText = data.new_stock;
+                    const preorderCell = itemRow.querySelector('td:nth-child(7)');
+                    stockCell.innerText = data.stock;
+                    preorderCell.innerText = data.preorders_left;
                 } else alert('Error: ' + data.error);
             });
         } else alert('Error: ' + data.error);
