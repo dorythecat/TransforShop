@@ -11,7 +11,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     $password_hash = md5($password); // Use MD5 hashing for password comparison
     $result = mysqli_query($db, "SELECT * FROM admins WHERE username='$username' AND password_hash='$password_hash';");
     if (mysqli_num_rows($result) === 1) {
+        mysqli_query($db, "UPDATE admins SET last_login=NOW() WHERE username='$username';");
         $_SESSION['admin_logged_in'] = true;
+        $_SESSION['username'] = $username;
         header("Location: admin.php");
         exit();
     } else $login_error = 'Invalid username or password.';
