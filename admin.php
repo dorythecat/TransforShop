@@ -488,11 +488,11 @@ function updateOrder(id, field, value) {
               const orderItems = document.getElementById('order-items-' + id);
               if (orderItems) {
                   const subtotalCell = orderItems.closest('td').nextElementSibling;
-                  if (subtotalCell && typeof data.subtotal !== 'undefined') subtotalCell.innerText = parseFloat(data.subtotal).toFixed(2) + '€';
+                  if (typeof data.subtotal !== 'undefined') subtotalCell.innerText = parseFloat(data.subtotal).toFixed(2) + '€';
                   const shippingCell = subtotalCell ? subtotalCell.nextElementSibling : null;
-                  if (shippingCell && typeof data.shipping !== 'undefined') shippingCell.innerText = parseFloat(data.shipping).toFixed(2) + '€';
+                  if (typeof data.shipping !== 'undefined') shippingCell.innerText = parseFloat(data.shipping).toFixed(2) + '€';
                   const totalCell = shippingCell ? shippingCell.nextElementSibling : null;
-                  if (totalCell) totalCell.innerText = parseFloat(data.total).toFixed(2) + '€';
+                  totalCell.innerText = parseFloat(data.total).toFixed(2) + '€';
               }
           } else console.log('Order updated successfully');
     });
@@ -545,8 +545,8 @@ function updateOrderItem(orderId, itemId, qty) {
             // update subtotal cell
             const subtotalCell = document.querySelector('#order-items-' + orderId).closest('td').nextElementSibling;
             const totalCell = subtotalCell.nextElementSibling.nextElementSibling;
-            if (subtotalCell) subtotalCell.innerText = data.subtotal.toFixed(2) + '€';
-            if (totalCell) totalCell.innerText = data.total.toFixed(2) + '€';
+            subtotalCell.innerText = data.subtotal.toFixed(2) + '€';
+            totalCell.innerText = data.total.toFixed(2) + '€';
 
             // Update stock display if needed
             const itemRow = document.querySelector("tr[data-item-id='" + itemId + "']");
@@ -561,7 +561,7 @@ function updateOrderItem(orderId, itemId, qty) {
             }).then(r => r.json()).then(data => {
                 if (data.success) {
                     const stockCell = itemRow.querySelector('td:nth-child(6)');
-                    if (stockCell) stockCell.innerText = data.new_stock;
+                    stockCell.innerText = data.new_stock;
                 } else alert('Error: ' + data.error);
             });
         } else alert('Error: ' + data.error);
@@ -585,8 +585,8 @@ function removeOrderItem(orderId, itemId) {
             renderOrderItems(orderId, data.items);
             const subtotalCell = document.querySelector('#order-items-' + orderId).closest('td').nextElementSibling;
             const totalCell = subtotalCell.nextElementSibling.nextElementSibling;
-            if (subtotalCell) subtotalCell.innerText = data.subtotal.toFixed(2) + '€';
-            if (totalCell) totalCell.innerText = data.total.toFixed(2) + '€';
+            subtotalCell.innerText = data.subtotal.toFixed(2) + '€';
+            totalCell.innerText = data.total.toFixed(2) + '€';
 
             // Update stock display if needed
             const itemRow = document.querySelector("tr[data-item-id='" + itemId + "']");
@@ -601,7 +601,7 @@ function removeOrderItem(orderId, itemId) {
             }).then(r => r.json()).then(data => {
                 if (data.success) {
                     const stockCell = itemRow.querySelector('td:nth-child(6)');
-                    if (stockCell) stockCell.innerText = data.new_stock;
+                    stockCell.innerText = data.new_stock;
                 } else alert('Error: ' + data.error);
             });
         } else alert('Error: ' + data.error);
@@ -630,8 +630,8 @@ function addOrderItem(orderId) {
             renderOrderItems(orderId, data.items);
             const subtotalCell = document.querySelector('#order-items-' + orderId).closest('td').nextElementSibling;
             const totalCell = subtotalCell.nextElementSibling.nextElementSibling;
-            if (subtotalCell) subtotalCell.innerText = data.subtotal.toFixed(2) + '€';
-            if (totalCell) totalCell.innerText = data.total.toFixed(2) + '€';
+            subtotalCell.innerText = data.subtotal.toFixed(2) + '€';
+            totalCell.innerText = data.total.toFixed(2) + '€';
 
             // Update stock display if needed
             const itemRow = document.querySelector("tr[data-item-id='" + itemId + "']");
@@ -646,7 +646,7 @@ function addOrderItem(orderId) {
             }).then(r => r.json()).then(data => {
                 if (data.success) {
                     const stockCell = itemRow.querySelector('td:nth-child(6)');
-                    if (stockCell) stockCell.innerText = data.new_stock;
+                    stockCell.innerText = data.new_stock;
                 } else alert('Error: ' + data.error);
             });
         } else alert('Error: ' + data.error);
