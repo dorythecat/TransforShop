@@ -287,9 +287,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
     <header id="navbar">
         <h1>TransforShop Admin Panel</h1>
         <?php echo '<p>Logged in as <strong>' . htmlspecialchars($_SESSION['username']) . '</strong></p>'; ?>
-        <nav>
-            <a href="?logout=true">Logout</a>
-        </nav>
+        <nav><a href="?logout=true">Logout</a></nav>
     </header>
     <main class="admin-panel">
         <section class="add-item">
@@ -309,15 +307,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
             <table>
                 <thead>
                     <tr>
-                        <th>ID</th>
-                        <th>Name</th>
-                        <th>Description</th>
-                        <th>Image</th>
-                        <th>Price</th>
-                        <th>Stock</th>
-                        <th>Preorders Left</th>
-                        <th>Visible</th>
-                        <th>Actions</th>
+                        <th>ID</th><th>Name</th><th>Description</th><th>Image</th><th>Price</th>
+                        <th>Stock</th><th>Preorders Left</th><th>Visible</th><th>Admin actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -338,23 +329,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
                         $preorders_left = htmlspecialchars($item['preorders_left']);
                         $visible_checked = !empty($item['visible']) ? 'checked' : '';
 
-                        echo "<tr data-item-id='$id'>\n";
-                        echo "<td>$id</td>\n";
-                        echo "<td contenteditable='true' onBlur='updateItem($id, \"name\", this.innerText)'>$name</td>\n";
-                        echo "<td contenteditable='true' onBlur='updateItem($id, \"description\", this.innerText)'>$description</td>\n";
+                        echo "<tr data-item-id='$id'>";
+                        echo "<td>$id</td>";
+                        echo "<td contenteditable='true' onBlur='updateItem($id, \"name\", this.innerText)'>$name</td>";
+                        echo "<td contenteditable='true' onBlur='updateItem($id, \"description\", this.innerText)'>$description</td>";
                         // Image preview + editable URL
-                        echo "<td>\n";
-                        echo "  <div style='display:flex; align-items:center; gap:8px;'>\n";
-                        echo "    <img src='$image' alt='$name' width='50' onError=\"this.src='https://placehold.co/50'\"/>\n";
-                        echo "    <div contenteditable='true' onBlur='updateItem($id, \"image\", this.innerText)'>$image</div>\n";
-                        echo "  </div>\n";
-                        echo "</td>\n";
-                        echo "<td contenteditable='true' onBlur='updateItem($id, \"price\", this.innerText)'>$price</td>\n";
-                        echo "<td contenteditable='true' onBlur='updateItem($id, \"stock\", this.innerText)'>$stock</td>\n";
-                        echo "<td contenteditable='true' onBlur='updateItem($id, \"preorders_left\", this.innerText)'>$preorders_left</td>\n";
-                        echo "<td><input type='checkbox' $visible_checked onchange='updateItem($id, \"visible\", this.checked ? 1 : 0)'></td>\n";
-                        echo "<td><a href='?delete_item_id=$id' onclick='return confirm(\"Are you sure?\")'>Delete</a></td>\n";
-                        echo "</tr>\n";
+                        echo "<td><div style='display:flex; align-items:center; gap:8px;'>";
+                        echo "<img src='$image' alt='$name' width='50'/>";
+                        echo "<div contenteditable='true' onBlur='updateItem($id, \"image\", this.innerText)'>$image</div>";
+                        echo "</div></td>";
+                        echo "<td contenteditable='true' onBlur='updateItem($id, \"price\", this.innerText)'>$price</td>";
+                        echo "<td contenteditable='true' onBlur='updateItem($id, \"stock\", this.innerText)'>$stock</td>";
+                        echo "<td contenteditable='true' onBlur='updateItem($id, \"preorders_left\", this.innerText)'>$preorders_left</td>";
+                        echo "<td><input type='checkbox' $visible_checked onchange='updateItem($id, \"visible\", this.checked ? 1 : 0)'></td>";
+                        echo "<td><a href='?delete_item_id=$id' onclick='return confirm(\"Are you sure?\")'>Delete</a></td></tr>";
                     }
                     ?>
                 </tbody>
@@ -365,22 +353,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
             <table>
                 <thead>
                     <tr>
-                        <th>Order ID</th>
-                        <th>Order Time</th>
-                        <th>Sent Time</th>
-                        <th>Status</th>
-                        <th>Items</th>
-                        <th>Subtotal</th>
-                        <th>Shipping</th>
-                        <th>Total</th>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Phone Number</th>
-                        <th>Address</th>
-                        <th>Country</th>
-                        <th>Postal Code</th>
-                        <th>Notes</th>
-                        <th>Actions</th>
+                        <th>Order ID</th><th>Order Time</th><th>Sent Time</th><th>Status</th>
+                        <th>Items</th><th>Subtotal</th><th>Shipping</th><th>Total</th>
+                        <th>Name</th><th>Email</th><th>Phone Number</th><th>Address</th>
+                        <th>Country</th><th>Postal Code</th><th>Notes</th><th>Admin actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -389,14 +365,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
                     while ($order = mysqli_fetch_array($orders_query)) {
                         $items = json_decode($order['items'], true);
                         if (!is_array($items)) $items = [];
-                        $subtotal = number_format($order['subtotal'], 2);
-                        $shipping = number_format($order['shipping'], 2);
-                        $total = number_format($order['subtotal'] + $order['shipping'], 2);
-                        $sent_time = $order['sent_time'] ? date('Y-m-d H:i:s', strtotime($order['sent_time'])) : 'N/A';
-                        echo "<tr>";
-                        echo "<td>{$order['id']}</td>";
-                        echo "<td>{$order['order_time']}</td>";
-                        echo "<td>$sent_time</td>";
+                        echo "<tr><td>{$order['id']}</td>";
+                        echo "<td>" . date('d/m/Y H:m:s', strtotime($order['order_time'])) . "</td>";
+                        echo "<td>" . ($order['sent_time'] ? date('d/m/Y H:m:s', strtotime($order['sent_time'])) : 'N/A') . "</td>";
                         echo "<td><select onchange='updateOrder({$order['id']}, \"status\", this.value)'>";
                         echo "<option value='preorder' " . ($order['status'] === 'preorder' ? 'selected' : '') . ">Preorder</option>";
                         echo "<option value='pending' " . ($order['status'] === 'pending' ? 'selected' : '') . ">Pending</option>";
@@ -407,47 +378,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
                         echo "<option value='unpaid' " . ($order['status'] === 'unpaid' ? 'selected' : '') . ">Unpaid</option>";
                         echo "<option value='unpaid preorder' " . ($order['status'] === 'unpaid preorder' ? 'selected' : '') . ">Unpaid Preorder</option>";
                         echo "</select></td>";
-                        echo "<td>";
                         // Render editable items list: quantity inputs, remove buttons, and add controls
-                        echo "<div id='order-items-{$order['id']}' style='display:flex;flex-direction:column;gap:6px;'>";
+                        echo "<td><div id='order-items-{$order['id']}' style='display:flex;flex-direction:column;gap:6px;'>";
                         foreach ($items as $itemId => $quantity) {
                             $item_query = mysqli_query($db, "SELECT name FROM items WHERE id=$itemId;");
                             $item_row = mysqli_fetch_array($item_query);
-                            $item_name = $item_row ? htmlspecialchars($item_row['name']) : 'Unknown Item';
                             echo "<div class='order-item' data-item-id='$itemId'>";
-                            echo "<span class='item-name'>$item_name</span> ";
+                            echo "<span class='item-name'>" . ($item_row ? htmlspecialchars($item_row['name']) : 'Unknown Item') . "</span> ";
                             echo "<input type='number' min='0' value='$quantity' style='width:70px' onchange='updateOrderItem({$order['id']}, $itemId, this.value)'> ";
-                            echo "<button onclick='removeOrderItem({$order['id']}, $itemId); return false;'>-</button>";
-                            echo "</div>";
+                            echo "<button onclick='removeOrderItem({$order['id']}, $itemId); return false;'>-</button></div>";
                         }
                         // Add item controls: dropdown populated from $all_items_map
                         echo "<div style='margin-top:6px;display:flex;gap:6px;align-items:center;'>";
                         echo "<select id='add-item-select-{$order['id']}'>";
-                        foreach ($all_items_map as $aid => $aname) {
-                            $aname_esc = htmlspecialchars($aname);
-                            echo "<option value='{$aid}'>{$aname_esc}</option>";
-                        }
+                        foreach ($all_items_map as $aid => $aname) echo "<option value='$aid'>" . htmlspecialchars($aname) . "</option>";
                         echo "</select>";
                         echo "<input id='add-item-qty-{$order['id']}' type='number' min='1' value='1' style='width:60px;'>";
-                        echo "<button onclick='addOrderItem({$order['id']}); return false;'>+</button>";
-                        echo "</div>";
-                        echo "</div>";
-                        echo "</td>";
-                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"subtotal\", this.innerText)'>{$subtotal}€</td>";
-                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"shipping\", this.innerText)'>{$shipping}€</td>";
-                        echo "<td>{$total}€</td>";
-                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"name\", this.innerText)'>{$order['name']}</td>";
-                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"email\", this.innerText)'>{$order['email']}</td>";
-                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"phone\", this.innerText)'>{$order['phone']}</td>";
-                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"address\", this.innerText)'>{$order['address']}</td>";
-                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"country\", this.innerText)'>{$order['country']}</td>";
-                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"postal_code\", this.innerText)'>{$order['postal_code']}</td>";
-                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"notes\", this.innerText)'>{$order['notes']}</td>";
+                        echo "<button onclick='addOrderItem({$order['id']}); return false;'>+</button></div></div></td>";
+                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"subtotal\", this.innerText)'>" . number_format($order['subtotal'], 2) . "€</td>";
+                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"shipping\", this.innerText)'>" . number_format($order['shipping'], 2) . "€</td>";
+                        echo "<td>" . (number_format($order['subtotal'] + $order['shipping'], 2)) . "€</td>";
+                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"name\", this.innerText)'>" . htmlspecialchars($order['name']) . "</td>";
+                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"email\", this.innerText)'>" . htmlspecialchars($order['email']) . "</td>";
+                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"phone\", this.innerText)'>" . htmlspecialchars($order['phone']) . "</td>";
+                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"address\", this.innerText)'>" . htmlspecialchars($order['address']) . "</td>";
+                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"country\", this.innerText)'>" . htmlspecialchars($order['country']) . "</td>";
+                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"postal_code\", this.innerText)'>" . htmlspecialchars($order['postal_code']) . "</td>";
+                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"notes\", this.innerText)'>" . htmlspecialchars($order['notes']) . "</td>";
                         echo "<td>";
                         if ($order['status'] !== 'sent' && $order['status'] !== 'delivered')
                             echo "<a href='?send_order_id={$order['id']}' onclick='return confirm(\"Mark order as sent?\")'>Mark as Sent</a> | ";
-                        echo "<a href='?delete_order_id={$order['id']}' onclick='return confirm(\"Are you sure?\")'>Delete</a>";
-                        echo "</td></tr>";
+                        echo "<a href='?delete_order_id={$order['id']}' onclick='return confirm(\"Are you sure?\")'>Delete</a></td></tr>";
                     }
                     ?>
                 </tbody>
@@ -457,7 +418,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
 </body>
 <script>
 // Expose a client-side map of all items (id => name) for rendering
-var ALL_ITEMS = <?php echo json_encode($all_items_map); ?>;
+const ALL_ITEMS = <?php echo json_encode($all_items_map); ?>;
 
 function updateItem(id, field, value) {
     fetch('admin.php', {
@@ -502,19 +463,16 @@ function updateOrder(id, field, value) {
 function renderOrderItems(orderId, items) {
     const container = document.getElementById('order-items-' + orderId);
     let html = '';
-    for (let itemId in items) {
-        let qty = items[itemId];
-        let name = ALL_ITEMS[itemId] ? ALL_ITEMS[itemId] : 'Unknown Item';
+    for (const itemId in items) {
         html += "<div class='order-item' data-item-id='"+itemId+"'>";
-        html += "<span class='item-name'>" + escapeHtml(name) + "</span> ";
-        html += "<input type='number' min='0' value='"+qty+"' style='width:70px' onchange='updateOrderItem("+orderId+","+itemId+", this.value)'> ";
-        html += "<button onclick='removeOrderItem("+orderId+","+itemId+"); return false;'>X</button>";
-        html += "</div>";
+        html += "<span class='item-name'>" + escapeHtml(ALL_ITEMS[itemId] ? ALL_ITEMS[itemId] : 'Unknown Item') + "</span>";
+        html += "<input type='number' min='0' value='"+items[itemId]+"' style='width:70px' onchange='updateOrderItem("+orderId+","+itemId+", this.value)'>";
+        html += "<button onclick='removeOrderItem("+orderId+","+itemId+"); return false;'>X</button></div>";
     }
-    // add controls
+    // Controls to add new items
     html += "<div style='margin-top:6px;display:flex;gap:6px;align-items:center;'>";
     html += "<select id='add-item-select-"+orderId+"'>";
-    for (let aid in ALL_ITEMS) html += "<option value='"+aid+"'>"+escapeHtml(ALL_ITEMS[aid])+"</option>";
+    for (const id in ALL_ITEMS) html += "<option value='"+id+"'>"+escapeHtml(ALL_ITEMS[id])+"</option>";
     html += "</select>";
     html += "<input id='add-item-qty-"+orderId+"' type='number' min='1' value='1' style='width:60px;'>";
     html += "<button onclick='addOrderItem("+orderId+"); return false;'>+</button>";
@@ -534,8 +492,7 @@ function updateOrderItem(orderId, itemId, qty) {
         headers: {
             'Content-Type': 'application/json',
             'X-Update-Type': 'order'
-        },
-        body: JSON.stringify({
+        }, body: JSON.stringify({
             id: orderId, field: 'items', value: JSON.stringify({
                 action: 'update', item_id: itemId, qty: parseInt(qty,10)
             })
@@ -557,8 +514,7 @@ function updateOrderItem(orderId, itemId, qty) {
                 headers: {
                     'Content-Type': 'application/json',
                     'X-Update-Type': 'item'
-                },
-                body: JSON.stringify({ id: itemId, field: 'stock', value: 'refresh' })
+                }, body: JSON.stringify({ id: itemId, field: 'stock', value: 'refresh' })
             }).then(r => r.json()).then(data => {
                 if (data.success) {
                     const stockCell = itemRow.querySelector('td:nth-child(6)');
@@ -577,8 +533,7 @@ function removeOrderItem(orderId, itemId) {
         headers: {
             'Content-Type': 'application/json',
             'X-Update-Type': 'order'
-        },
-        body: JSON.stringify({
+        }, body: JSON.stringify({
             id: orderId, field: 'items', value: JSON.stringify({
                 action: 'remove', item_id: itemId
             })
@@ -599,8 +554,7 @@ function removeOrderItem(orderId, itemId) {
                 headers: {
                     'Content-Type': 'application/json',
                     'X-Update-Type': 'item'
-                },
-                body: JSON.stringify({ id: itemId, field: 'stock', value: 'refresh' })
+                }, body: JSON.stringify({ id: itemId, field: 'stock', value: 'refresh' })
             }).then(r => r.json()).then(data => {
                 if (data.success) {
                     const stockCell = itemRow.querySelector('td:nth-child(6)');
@@ -616,16 +570,15 @@ function removeOrderItem(orderId, itemId) {
 function addOrderItem(orderId) {
     const sel = document.getElementById('add-item-select-' + orderId);
     const qtyInput = document.getElementById('add-item-qty-' + orderId);
-    let itemId = parseInt(sel.value, 10);
-    let qty = parseInt(qtyInput.value, 10);
+    const itemId = parseInt(sel.value, 10);
+    const qty = parseInt(qtyInput.value, 10);
     if (!itemId || qty <= 0) { alert('Invalid item or quantity'); return; }
     fetch('admin.php', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-Update-Type': 'order'
-        },
-        body: JSON.stringify({
+        }, body: JSON.stringify({
             id: orderId, field: 'items', value: JSON.stringify({
                 action: 'add', item_id: itemId, qty: qty
             })
@@ -646,8 +599,7 @@ function addOrderItem(orderId) {
                 headers: {
                     'Content-Type': 'application/json',
                     'X-Update-Type': 'item'
-                },
-                body: JSON.stringify({ id: itemId, field: 'stock', value: 'refresh' })
+                }, body: JSON.stringify({ id: itemId, field: 'stock', value: 'refresh' })
             }).then(r => r.json()).then(data => {
                 if (data.success) {
                     const stockCell = itemRow.querySelector('td:nth-child(6)');
