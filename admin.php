@@ -286,6 +286,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
 <body>
     <header id="navbar">
         <h1>TransforShop Admin Panel</h1>
+        <?php echo '<p>Logged in as <strong>' . htmlspecialchars($_SESSION['username']) . '</strong></p>'; ?>
         <nav>
             <a href="?logout=true">Logout</a>
         </nav>
