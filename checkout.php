@@ -252,11 +252,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
         $country_name_esc = htmlspecialchars($country_name);
         echo "<option value='$country_name_esc'>$country_name_esc</option>";
     } echo "</select>";
-    ?>
-    <input type="email" name="email" placeholder="Email Address" required><br>
-    <input type="text" name="phone" placeholder="Phone Number" required><br>
-    <input type="text" name="notes" placeholder="Additional Notes (optional)"><br>
-    <?php
+
+    echo "<input type='email' name='email' placeholder='Email Address' required><br>";
+    echo "<input type='number' name='phone' placeholder='Phone Number (*)' required><br>";
+    echo "<input type='text' name='notes' placeholder='Additional Notes (optional)'><br>";
+
     $has_normal = false;
     $has_preorder = false;
     $item_ids = array_keys($_SESSION['cart']);
@@ -272,6 +272,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
         echo '<label for="preorder_separate" style="background-color:white;color:red;padding:20px;border-radius:10px;">WARNING: PREORDER ITEMS ARE SENT WHEN MADE AVAILABLE BY DEFAULT. TO RECEIVE EVERYTHING AT THE SAME TIME (and not pay shipping two times) PLEASE UNCHECK THIS BOX.</label><br>';
         echo '<input type="checkbox" name="preorder_separate" id="preorder_separate" checked>';
     } else echo '<input type="hidden" name="preorder_separate" value="0">';
+
+    echo "<p>* This phone number is assumed to be registered in the shipping country.
+               Add in notes if this is not the case.</p>";
     ?>
     <button type="submit">Place Order</button>
     <button type="button" onclick="window.location.href='index.php'">Continue Shopping</button>
