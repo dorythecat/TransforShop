@@ -24,11 +24,8 @@ if (!$payload) {
 }
 
 try {
-    $event = \Stripe\Webhook::constructEvent(
-        $payload, $sig_header, STRIPE_WEBHOOK_SECRET
-    );
-} catch (\UnexpectedValueException $e) {
-    // Invalid payload
+    $event = \Stripe\Webhook::constructEvent($payload, $sig_header, STRIPE_WEBHOOK_SECRET);
+} catch (\UnexpectedValueException $e) { // Invalid payload
     http_response_code(400);
     error_log("Invalid payload");
     exit();
@@ -59,7 +56,8 @@ if ($event->type == 'checkout.session.completed') {
         error_log($order_id);
         $order_id = intval($order_id);
         $status_query = mysqli_query($db, "SELECT status FROM orders WHERE id=$order_id;");
-        $status_result = mysqli_fetch_array($status_query)['status'] ?? null;
+        $status_result = null;
+        if ($status_row = mysqli_fetch_array($status_query)) $status_result = $status_row['status'];
         if (!$status_result) {
             error_log("Order ID $order_id not found");
             continue;
