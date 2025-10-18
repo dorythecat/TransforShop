@@ -58,13 +58,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
 
     // Helper to calculate shipping
     function calc_shipping($country) {
-        $shipping = 4.50; // Zone 2
-        $zone1 = ["Portugal", "United Kingdom", "Germany", "France", "Andorra", "Italy", "Belgium", "Netherlands", "Luxembourg", "Ireland", "Austria", "Isle of Mann", "Denmark", "Poland", "Czech Republic", "Slovakia", "Slovenia", "Hungary", "Romania", "Bulgaria", "Greece", "Croatia", "Finland", "Sweden", "Estonia", "Latvia", "Lithuania"];
+        $zone1 = ["Portugal", "United Kingdom", "Germany", "France", "Andorra", "Italy", "Belgium", "Netherlands",
+                  "Luxembourg", "Ireland", "Austria", "Isle of Mann", "Denmark", "Poland", "Czech Republic", "Slovakia",
+                  "Slovenia", "Hungary", "Romania", "Bulgaria", "Greece", "Croatia", "Finland", "Sweden", "Estonia",
+                  "Latvia", "Lithuania"];
         $zone3 = ["United States", "Australia", "Canada", "Japan", "New Zealand", "Russia"];
-        if ($country === "Spain") $shipping = 2.00;
-        else if (in_array($country, $zone1)) $shipping = 3.00;
-        else if (in_array($country, $zone3)) $shipping = 5.00;
-        return $shipping;
+        if ($country === "Spain") return 2.00;
+        if (in_array($country, $zone1)) return 3.00;
+        if (in_array($country, $zone3)) return 5.00;
+        return 4.50; // Zone 2
     }
 
     // Place order for normal items, but mark it as unpaid, store the ids so we can mark them as pending when paid
