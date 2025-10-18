@@ -71,7 +71,6 @@ if (isset($_GET['delete_order_id'])) {
  *
  * @return string JSON encoded result indicating success or failure.
  */
-// TODO: Make total price auto-update when subtotal or shipping changes
 function update($input, $allowed_fields, $db, $table_name) {
     if (!isset($input['id'], $input['field'], $input['value']))
         return json_encode(['success' => false, 'error' => 'Invalid input']);
