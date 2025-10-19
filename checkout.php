@@ -175,11 +175,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
     <h1>TransforMate Official Shop | Checkout</h1>
 </div>
 <table id="checkout-table">
-    <tr>
-        <th>Item</th>
-        <th>Quantity</th>
-        <th>Price</th>
-    </tr>
+    <tr><th>Item</th><th>Quantity</th><th>Price</th></tr>
     <?php
     $item_ids = array_keys($_SESSION['cart']);
     if (!empty($item_ids)) {
@@ -201,8 +197,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
           <td id='subtotal' class='price-col'><strong>" . number_format($subtotal, 2) . "€</strong></td>
           </tr>";
     ?>
-    <tr><td colspan='2'><strong>Shipping</strong></td><td id="shipping-cost" class="price-col placeholder"><span id='shipping-placeholder'>0.00€</span></td></tr>
-    <tr><td colspan='2'><strong>Total</strong></td><td id="total-cost" class="price-col placeholder"><span id='total-placeholder'>0.00€</span></td></tr>
+    <tr>
+        <td colspan='2'><strong>Shipping</strong></td>
+        <td id="shipping-cost" class="price-col placeholder"><span id='shipping-placeholder'>0.00€</span></td>
+    </tr>
+    <tr>
+        <td colspan='2'><strong>Total</strong></td>
+        <td id="total-cost" class="price-col placeholder"><span id='total-placeholder'>0.00€</span></td>
+    </tr>
 </table>
 <form id="checkout-form" method="POST">
     <input type="text" name="name" placeholder="Full Name" required><br>
