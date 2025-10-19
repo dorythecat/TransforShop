@@ -25,12 +25,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login - TransforShop</title>
+    <title>TransforMate Official Shop | Admin Login</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <header id="navbar">
-        <h1>TransforShop Admin Login</h1>
+        <h1>TransforMate Official Shop | Admin Login</h1>
     </header>
     <main>
         <section class="login-form">

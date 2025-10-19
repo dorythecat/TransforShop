@@ -287,12 +287,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - TransforShop</title>
+    <title>TransforMate Official Shop | Admin Panel</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <header id="navbar">
-        <h1>TransforShop Admin Panel</h1>
+        <h1>TransforMate Official Shop | Admin Pane</h1>
         <?php echo '<p>Logged in as <strong>' . htmlspecialchars($_SESSION['username']) . '</strong></p>'; ?>
         <nav><a href="?logout=true">Logout</a></nav>
     </header>
