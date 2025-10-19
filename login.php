@@ -9,9 +9,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     $user = mysqli_real_escape_string($db, $_POST['username']);
     $pass = mysqli_real_escape_string($db, $_POST['password']);
     $pass_hash = md5($pass); // Use MD5 hashing for password comparison
-    $result = mysqli_query($db, "SELECT * FROM admins WHERE username='$user' AND password_hash='$pass_hash';");
+    $result = mysqli_query($db, "SELECT * FROM admins WHERE username='$user' AND password_hash='$pass_hash'");
     if (mysqli_num_rows($result) === 1) {
-        mysqli_query($db, "UPDATE admins SET last_login=NOW() WHERE username='$user';");
+        mysqli_query($db, "UPDATE admins SET last_login=NOW() WHERE username='$user'");
         $_SESSION['admin_logged_in'] = true;
         $_SESSION['username'] = $user;
         header("Location: admin.php");

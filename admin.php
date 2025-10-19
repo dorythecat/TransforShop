@@ -11,7 +11,7 @@ if (!isset($_SESSION['admin_logged_in']) || !$_SESSION['admin_logged_in'] === tr
 }
 if (isset($_GET['delete_item_id'])) {
     $itemId = intval($_GET['delete_item_id']);
-    mysqli_query($db, "DELETE FROM items WHERE id=$itemId;");
+    mysqli_query($db, "DELETE FROM items WHERE id=$itemId");
     header("Location: " . $_SERVER['PHP_SELF']);
     exit();
 }
@@ -26,7 +26,7 @@ if (isset($_POST['add_item'])) {
     $stock = max(0, $stock);
     $preorders_left = max(0, $preorders_left);
     mysqli_query($db, "INSERT INTO items (name, image, price, stock, preorders_left) VALUES
-                                               ('$name', '$image', $price, $stock, $preorders_left);");
+                                               ('$name', '$image', $price, $stock, $preorders_left)");
     header("Location: " . $_SERVER['PHP_SELF']);
     exit();
 }
@@ -34,14 +34,14 @@ if (isset($_POST['add_item'])) {
 if (isset($_GET['send_order_id'])) {
     $orderId = intval($_GET['send_order_id']);
     $sent_time = date('Y-m-d H:i:s');
-    mysqli_query($db, "UPDATE orders SET status='sent', sent_time='$sent_time' WHERE id=$orderId;");
+    mysqli_query($db, "UPDATE orders SET status='sent', sent_time='$sent_time' WHERE id=$orderId");
     header("Location: " . $_SERVER['PHP_SELF']);
     exit();
 }
 
 if (isset($_GET['delete_order_id'])) {
     $orderId = intval($_GET['delete_order_id']);
-    $order_contents_query = mysqli_query($db, "SELECT status, items FROM orders WHERE id=$orderId;");
+    $order_contents_query = mysqli_query($db, "SELECT status, items FROM orders WHERE id=$orderId");
     $order_contents = mysqli_fetch_array($order_contents_query);
     if (empty($order_contents)) { // Should NOT happen
         header("Location: " . $_SERVER['PHP_SELF']);
@@ -50,10 +50,10 @@ if (isset($_GET['delete_order_id'])) {
     $items = json_decode($order_contents['items'], true);
     $preorder = in_array($order_contents['status'], array('preorder', 'unpaid preorder'));
     foreach ($items as $itemId => $quantity) {
-        mysqli_query($db, "UPDATE items SET stock = stock + $quantity WHERE id=$itemId;");
-        if ($preorder) mysqli_query($db, "UPDATE items SET preorders_left = preorders_left + $quantity WHERE id=$itemId;");
+        mysqli_query($db, "UPDATE items SET stock = stock + $quantity WHERE id=$itemId");
+        if ($preorder) mysqli_query($db, "UPDATE items SET preorders_left = preorders_left + $quantity WHERE id=$itemId");
     }
-    mysqli_query($db, "DELETE FROM orders WHERE id=$orderId;");
+    mysqli_query($db, "DELETE FROM orders WHERE id=$orderId");
     header("Location: " . $_SERVER['PHP_SELF']);
     exit();
 }
@@ -81,7 +81,7 @@ function update($input, $allowed_fields, $db, $table_name) {
 
     // Special-case: support a 'refresh' request for item stock (no UPDATE, just return current stock)
     if ($table_name === 'items' && $field === 'stock' && $raw_value === 'refresh') {
-        $res = mysqli_query($db, "SELECT stock, preorders_left FROM items WHERE id=$id;");
+        $res = mysqli_query($db, "SELECT stock, preorders_left FROM items WHERE id=$id");
         if (!$res) return error_invalid('item');
         $row = mysqli_fetch_array($res);
         if (empty($row)) return error_invalid('item');
@@ -97,16 +97,16 @@ function update($input, $allowed_fields, $db, $table_name) {
             // Extract numeric value (allow digits, dot and minus)
             $num = floatval(preg_replace('/[^0-9.\-]/', '', strval($raw_value)));
             // Persist the numeric value
-            if (!mysqli_query($db, "UPDATE orders SET $field=$num WHERE id=$id;"))
+            if (!mysqli_query($db, "UPDATE orders SET $field=$num WHERE id=$id"))
                 return error_failed_to('update order');
             // Re-fetch subtotal and shipping to compute total (in case only one was updated)
-            $res2 = mysqli_query($db, "SELECT subtotal, shipping FROM orders WHERE id=$id;");
+            $res2 = mysqli_query($db, "SELECT subtotal, shipping FROM orders WHERE id=$id");
             $row2 = mysqli_fetch_array($res2);
             $subtotal = floatval($row2['subtotal']);
             $shipping = floatval($row2['shipping']);
             $total = $subtotal + $shipping;
             // Persist total
-            mysqli_query($db, "UPDATE orders SET total=$total WHERE id=$id;");
+            mysqli_query($db, "UPDATE orders SET total=$total WHERE id=$id");
             return json_encode(['success' => true,
                                 'subtotal' => $subtotal,
                                 'shipping' => $shipping,
@@ -115,7 +115,7 @@ function update($input, $allowed_fields, $db, $table_name) {
 
         // Default behaviour: update as string/value
         $value = mysqli_real_escape_string($db, $raw_value);
-        mysqli_query($db, "UPDATE $table_name SET $field='$value' WHERE id=$id;");
+        mysqli_query($db, "UPDATE $table_name SET $field='$value' WHERE id=$id");
         return json_encode(['success' => true]);
     } return error_invalid('field');
 }
@@ -137,7 +137,7 @@ function updateOrderItems($input, $db) {
     if (!$payload || !isset($payload['action'])) return error_invalid('payload');
 
     // Fetch current items, status and shipping in one go
-    $res = mysqli_query($db, "SELECT items, status, shipping FROM orders WHERE id=$orderId;");
+    $res = mysqli_query($db, "SELECT items, status, shipping FROM orders WHERE id=$orderId");
     if (!$res) return error_invalid('order');
     $row = mysqli_fetch_array($res);
     if (!$row) return error_invalid('order');
@@ -178,7 +178,7 @@ function updateOrderItems($input, $db) {
     $prices = [];
     if (!empty($ids)) {
         $ids_list = implode(',', array_map('intval', $ids));
-        $prices_res = mysqli_query($db, "SELECT id, price FROM items WHERE id IN ($ids_list);");
+        $prices_res = mysqli_query($db, "SELECT id, price FROM items WHERE id IN ($ids_list)");
         if ($prices_res) while ($p = mysqli_fetch_array($prices_res)) $prices[intval($p['id'])] = floatval($p['price']);
         foreach ($items as $id => $q) $subtotal += isset($prices[intval($id)]) ? $prices[intval($id)] * intval($q) : 0.0;
     }
@@ -191,7 +191,7 @@ function updateOrderItems($input, $db) {
     if (!mysqli_begin_transaction($db)) return error_failed_to('start db transaction');
 
     // Update orders table
-    $orders_update_sql = "UPDATE orders SET items='$items_json', subtotal=$subtotal, total=$total WHERE id=$orderId;";
+    $orders_update_sql = "UPDATE orders SET items='$items_json', subtotal=$subtotal, total=$total WHERE id=$orderId";
     if (!mysqli_query($db, $orders_update_sql)) {
         mysqli_rollback($db);
         return error_failed_to('update orders');
@@ -214,7 +214,8 @@ function updateOrderItems($input, $db) {
                 mysqli_stmt_bind_param($stmt, 'iii', $stock_delta, $preorders_delta, $pid);
                 $fail = !mysqli_stmt_execute($stmt);
             } else { // Fallback: run individual queries if prepare fails
-                $q = "UPDATE items SET stock = stock + $stock_delta, preorders_left = preorders_left + $preorders_delta WHERE id=$pid;";
+                $q = "UPDATE items SET stock = stock + $stock_delta,
+                                       preorders_left = preorders_left + $preorders_delta WHERE id=$pid";
                 $fail = !mysqli_query($db, $q);
             } if ($fail) break;
         } if ($stmt) mysqli_stmt_close($stmt);
@@ -293,10 +294,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
                 </thead>
                 <tbody>
                     <?php
-                    $items_query = mysqli_query($db, "SELECT * FROM items;");
+                    $items_query = mysqli_query($db, "SELECT * FROM items");
                     // Build a map of all available items (id=>name) to use in order editors
                     $all_items_map = array();
-                    $all_items_res = mysqli_query($db, "SELECT id, name FROM items;");
+                    $all_items_res = mysqli_query($db, "SELECT id, name FROM items");
                     while ($ai = mysqli_fetch_array($all_items_res)) $all_items_map[intval($ai['id'])] = $ai['name'];
 
                     while ($item = mysqli_fetch_array($items_query)) {
@@ -341,7 +342,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
                 </thead>
                 <tbody>
                     <?php
-                    $orders_query = mysqli_query($db, "SELECT * FROM orders ORDER BY order_time DESC;");
+                    $orders_query = mysqli_query($db, "SELECT * FROM orders ORDER BY order_time DESC");
                     while ($order = mysqli_fetch_array($orders_query)) {
                         $items = json_decode($order['items'], true);
                         if (!is_array($items)) $items = [];
@@ -363,7 +364,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
                         // Render editable items list: quantity inputs, remove buttons, and add controls
                         echo "<td><div id='order-items-{$order['id']}' style='display:flex;flex-direction:column;gap:6px;'>";
                         foreach ($items as $itemId => $quantity) {
-                            $item_query = mysqli_query($db, "SELECT name FROM items WHERE id=$itemId;");
+                            $item_query = mysqli_query($db, "SELECT name FROM items WHERE id=$itemId");
                             $item_row = mysqli_fetch_array($item_query);
                             echo "<div class='order-item' data-item-id='$itemId'>";
                             echo "<span class='item-name'>" . ($item_row ? htmlspecialchars($item_row['name']) : 'Unknown Item') . "</span> ";

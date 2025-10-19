@@ -5,7 +5,7 @@ if (session_status() == PHP_SESSION_NONE) session_start();
 if (!isset($_SESSION['cart'])) $_SESSION['cart'] = [];
 $db = mysqli_connect(DB_HOST, DB_USER, DB_PASS, DB_DATABASE);
 if (!$db) die("Connection failed: " . mysqli_connect_error());
-$shop_items=mysqli_query($db,"SELECT * FROM items ORDER BY stock DESC;");
+$shop_items=mysqli_query($db,"SELECT * FROM items ORDER BY stock DESC, name ASC");
 
 function addToCart($itemId) {
     if (!isset($_SESSION['cart'][$itemId])) $_SESSION['cart'][$itemId] = 0;
@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['set_quantity_id']) && isset($_POST['set_quantity_value'])) {
         $itemId = intval($_POST['set_quantity_id']);
         // Get max stock for this item
-        $item_query = mysqli_query($db, "SELECT stock FROM items WHERE id=$itemId;");
+        $item_query = mysqli_query($db, "SELECT stock FROM items WHERE id=$itemId");
         $item_row = mysqli_fetch_array($item_query);
         if (!$item_row) {
             header("Location: " . $_SERVER['PHP_SELF']);
@@ -63,7 +63,7 @@ if (!empty($_SESSION['cart'])) {
     echo "<table><tr><th>Item</th><th>Quantity</th><th>Price</th><th>Actions</th></tr>";
     $total_price = 0;
     foreach ($_SESSION['cart'] as $itemId => $quantity) {
-        $item_query = mysqli_query($db, "SELECT * FROM items WHERE id=$itemId;");
+        $item_query = mysqli_query($db, "SELECT * FROM items WHERE id=$itemId");
         if ($item_row = mysqli_fetch_array($item_query)) {
             $total_price += $item_row['price'] * $quantity;
             $max_items = $item_row['stock'];

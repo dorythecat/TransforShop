@@ -14,7 +14,7 @@ $shipping = 0.0;
 $item_ids = array_keys($_SESSION['cart']);
 if (!empty($item_ids)) {
     $ids_string = implode(',', array_map('intval', $item_ids));
-    $cart_query = mysqli_query($db, "SELECT * FROM items WHERE id IN ($ids_string);");
+    $cart_query = mysqli_query($db, "SELECT * FROM items WHERE id IN ($ids_string)");
     while ($row = mysqli_fetch_array($cart_query)) {
         $item_id = $row['id'];
         $quantity = $_SESSION['cart'][$item_id];
@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
     $item_ids = array_keys($_SESSION['cart']);
     $ids_string = implode(',', array_map('intval', $item_ids));
     $cart_items = [];
-    $cart_query = mysqli_query($db, "SELECT * FROM items WHERE id IN ($ids_string);");
+    $cart_query = mysqli_query($db, "SELECT * FROM items WHERE id IN ($ids_string)");
     while ($row = mysqli_fetch_array($cart_query)) {
         $item_id = $row['id'];
         $cart_items[$item_id] = $row;
@@ -83,21 +83,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
         $total = $subtotal + $shipping;
         $order_items_json = json_encode($order_items);
         $insert_query = "INSERT INTO orders (status, name, address, postal_code, country, email, phone, items, subtotal, shipping, total, notes) 
-                         VALUES ($status, '$name', '$address', '$postal_code', '$country', '$email', '$phone', '$order_items_json', '$subtotal', '$shipping', '$total', '$notes');";
+                         VALUES ($status, '$name', '$address', '$postal_code', '$country', '$email', '$phone', '$order_items_json', '$subtotal', '$shipping', '$total', '$notes')";
         mysqli_query($db, $insert_query);
 
-        $order_id_query = mysqli_query($db, "SELECT id FROM orders WHERE email='$email' AND items='$order_items_json' AND status=$status ORDER BY id DESC LIMIT 1;");
+        $order_id_query = mysqli_query($db, "SELECT id FROM orders WHERE email='$email' AND
+                                                                               items='$order_items_json' AND
+                                                                               status=$status ORDER BY id DESC LIMIT 1");
         $ids[] = mysqli_fetch_array($order_id_query)['id'];
 
         // Remove items from stock
         foreach ($cart as $item) {
             $item_id = $item['id'];
             $new_stock = max(0, $item['stock'] - $item['quantity']);
-            mysqli_query($db, "UPDATE items SET stock=$new_stock WHERE id=$item_id;");
+            mysqli_query($db, "UPDATE items SET stock=$new_stock WHERE id=$item_id");
             // Also reduce preorders left if applicable
             if ($item['preorders_left'] <= 0) continue;
             $new_preorders_left = max(0, $item['preorders_left'] - $item['quantity']);
-            mysqli_query($db, "UPDATE items SET preorders_left=$new_preorders_left WHERE id=$item_id;");
+            mysqli_query($db, "UPDATE items SET preorders_left=$new_preorders_left WHERE id=$item_id");
         }
     }
 
@@ -131,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
                 ],
                 'line_items' => array_map(function($item_id) {
                     global $db;
-                    $item_query = mysqli_query($db, "SELECT * FROM items WHERE id=$item_id;");
+                    $item_query = mysqli_query($db, "SELECT * FROM items WHERE id=$item_id");
                     $item_row = mysqli_fetch_array($item_query);
                     $quantity = $_SESSION['cart'][$item_id];
                     return [
@@ -183,7 +185,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
     $item_ids = array_keys($_SESSION['cart']);
     if (!empty($item_ids)) {
         $ids_string = implode(',', array_map('intval', $item_ids));
-        $cart_query = mysqli_query($db, "SELECT * FROM items WHERE id IN ($ids_string);");
+        $cart_query = mysqli_query($db, "SELECT * FROM items WHERE id IN ($ids_string)");
         while ($row = mysqli_fetch_array($cart_query)) {
             $item_id = $row['id'];
             $quantity = $_SESSION['cart'][$item_id];
@@ -269,7 +271,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
     $item_ids = array_keys($_SESSION['cart']);
     if (!empty($item_ids)) {
         $ids_string = implode(',', array_map('intval', $item_ids));
-        $cart_query = mysqli_query($db, "SELECT * FROM items WHERE id IN ($ids_string);");
+        $cart_query = mysqli_query($db, "SELECT * FROM items WHERE id IN ($ids_string)");
         while ($row = mysqli_fetch_array($cart_query)) {
             if ($row['preorders_left'] <= 0) $has_normal = true;
             if ($row['preorders_left'] > 0) $has_preorder = true;

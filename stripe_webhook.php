@@ -53,15 +53,17 @@ if ($event->type == 'checkout.session.completed') {
     $order_ids = explode(',', $metadata->order_ids);
     foreach ($order_ids as $order_id) {
         $order_id = intval($order_id);
-        $status_query = mysqli_query($db, "SELECT status FROM orders WHERE id=$order_id;");
+        $status_query = mysqli_query($db, "SELECT status FROM orders WHERE id=$order_id");
         $status_result = null;
         if ($status_row = mysqli_fetch_array($status_query)) $status_result = $status_row['status'];
         if (!$status_result) {
             error_log("Order ID $order_id not found");
             continue;
         }
-        if ($status_result === 'unpaid') mysqli_query($db, "UPDATE orders SET status='pending' WHERE id=$order_id;");
-        else if ($status_result === 'unpaid preorder') mysqli_query($db, "UPDATE orders SET status='preorder' WHERE id=$order_id;");
+        if ($status_result === 'unpaid') mysqli_query($db,
+            "UPDATE orders SET status='pending' WHERE id=$order_id");
+        else if ($status_result === 'unpaid preorder') mysqli_query($db,
+            "UPDATE orders SET status='preorder' WHERE id=$order_id");
         else error_log("Order ID $order_id has unexpected status $status_result");
     }
 } http_response_code(200);
