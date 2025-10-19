@@ -98,21 +98,18 @@ while ($row = mysqli_fetch_array($shop_items)) {
     else echo "<div class='product-card'>";
     echo "<img src='{$row['image']}' alt='Product Image'>";
     echo "<h2>" . htmlspecialchars($row['name']) . "</h2><p>" . htmlspecialchars($row['description']) . "</p>";
-    $stock = $row['stock'];
-    $text = "Units";
-    if ($row['preorders_left'] > 0) {
-        $stock = $row['preorders_left'];
-        $text = "Preorders";
-    }
-    if ($stock > 10) echo "<p>" . $text . " left: " . $stock . "</p>";
-    else echo "<p style='color:red;'>" . "Only " . $stock . strtolower($text) . " left.</p>";
-    echo "<p>" . number_format($row['price'], 2) . "€</p>";
+    $stock = $row['preorders_left'] > 0 ? $row['preorders_left'] : $row['stock'];
+    $text = $row['preorders_left'] > 0 ? "Preorders" : "Units";
+    if ($stock > 0) {
+        if ($stock > 10) echo "<p>" . $text . " left: " . $stock . "</p>";
+        else echo "<p style='color:red;'>" . "Only " . $stock . " " . strtolower($text) . " left.</p>";
+    } echo "<p>" . number_format($row['price'], 2) . "€</p>";
     if ($row['stock'] > 0) {
         echo "<form method='POST' style='display:inline;'>";
         echo "<input type='hidden' name='add_to_cart_id' value='{$row['id']}'>";
-        echo "<button class='add-to-cart' type='submit'>Add to Cart</button>";
-    } else echo "<button class='add-to-cart' type='button' disabled>Out of Stock</button>";
-    echo "</form></div>";
+        echo "<button class='add-to-cart' type='submit'>Add to Cart";
+    } else echo "<button class='add-to-cart' disabled>Out of Stock";
+    echo "</button></form></div>";
 } echo "</div>";
 ?>
 <script>
