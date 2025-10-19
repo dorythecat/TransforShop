@@ -177,17 +177,15 @@ function updateOrderItems($input, $db) {
     $ids = array_keys($items);
     $prices = [];
     if (!empty($ids)) {
-        $ids_int = array_map('intval', $ids);
-        $ids_list = implode(',', $ids_int);
+        $ids_list = implode(',', array_map('intval', $ids));
         $prices_res = mysqli_query($db, "SELECT id, price FROM items WHERE id IN ($ids_list);");
         if ($prices_res) while ($p = mysqli_fetch_array($prices_res)) $prices[intval($p['id'])] = floatval($p['price']);
-        foreach ($items as $iid => $q) $subtotal += isset($prices[intval($iid)]) ? $prices[intval($iid)] * intval($q) : 0.0;
+        foreach ($items as $id => $q) $subtotal += isset($prices[intval($id)]) ? $prices[intval($id)] * intval($q) : 0.0;
     }
 
     // Prepare values for DB update
     $items_json = mysqli_real_escape_string($db, json_encode($items));
-    $shipping = floatval($row['shipping']);
-    $total = $subtotal + $shipping;
+    $total = $subtotal + floatval($row['shipping']);
 
     // Start transaction
     if (!mysqli_begin_transaction($db)) return error_failed_to('start db transaction');
@@ -210,8 +208,8 @@ function updateOrderItems($input, $db) {
             $prev_qty = isset($prev_items[$pid]) ? intval($prev_items[$pid]) : 0;
             $new_qty = isset($items[$pid]) ? intval($items[$pid]) : 0;
             $stock_delta = $prev_qty - $new_qty; // add this amount to stock
-            $preorders_delta = ($prev_preorder ? $prev_qty : 0) - ($prev_preorder ? $new_qty : 0);
-            if ($stock_delta === 0 && $preorders_delta === 0) continue; // nothing to do
+            $preorders_delta = $prev_preorder ? $stock_delta : 0;
+            if ($stock_delta === 0) continue;
             if ($stmt) { // Use prepared statement
                 mysqli_stmt_bind_param($stmt, 'iii', $stock_delta, $preorders_delta, $pid);
                 $fail = !mysqli_stmt_execute($stmt);
@@ -220,10 +218,7 @@ function updateOrderItems($input, $db) {
                 $fail = !mysqli_query($db, $q);
             } if ($fail) break;
         } if ($stmt) mysqli_stmt_close($stmt);
-        if ($fail) {
-            mysqli_rollback($db);
-            return error_failed_to('update orders');
-        }
+        if ($fail) { mysqli_rollback($db); return error_failed_to('update orders'); }
     }
 
     // Commit transaction
