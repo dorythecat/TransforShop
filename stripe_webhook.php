@@ -23,9 +23,8 @@ if (!$payload) {
     exit();
 }
 
-try {
-    $event = \Stripe\Webhook::constructEvent($payload, $sig_header, STRIPE_WEBHOOK_SECRET);
-} catch (\UnexpectedValueException $e) { // Invalid payload
+try { $event = \Stripe\Webhook::constructEvent($payload, $sig_header, STRIPE_WEBHOOK_SECRET); }
+catch (\UnexpectedValueException $e) { // Invalid payload
     http_response_code(400);
     error_log("Invalid payload");
     exit();
@@ -53,7 +52,6 @@ if ($event->type == 'checkout.session.completed') {
     }
     $order_ids = explode(',', $metadata->order_ids);
     foreach ($order_ids as $order_id) {
-        error_log($order_id);
         $order_id = intval($order_id);
         $status_query = mysqli_query($db, "SELECT status FROM orders WHERE id=$order_id;");
         $status_result = null;
@@ -66,5 +64,4 @@ if ($event->type == 'checkout.session.completed') {
         else if ($status_result === 'unpaid preorder') mysqli_query($db, "UPDATE orders SET status='preorder' WHERE id=$order_id;");
         else error_log("Order ID $order_id has unexpected status $status_result");
     }
-}
-http_response_code(200);
+} http_response_code(200);
