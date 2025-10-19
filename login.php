@@ -4,6 +4,11 @@ require_once 'secrets.php';
 if (session_status() == PHP_SESSION_NONE) session_start();
 $db = mysqli_connect(DB_HOST, DB_USER, DB_PASS, DB_DATABASE);
 if (!$db) die("Connection failed: " . mysqli_connect_error());
+if (isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true) {
+    header("Location: admin.php");
+    exit();
+}
+
 $login_error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     $user = mysqli_real_escape_string($db, $_POST['username']);
