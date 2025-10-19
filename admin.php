@@ -22,7 +22,7 @@ if (isset($_POST['add_item'])) {
     $price = floatval($_POST['price']);
     $stock = intval($_POST['stock']);
     $preorders_left = intval($_POST['preorders_left']);
-    if ($image === '') $image = 'https://picsum.photos/150'; // Default placeholder image
+    if ($image === '') $image = 'https://picsum.photos/256'; // Default placeholder image
     $stock = max(0, $stock);
     $preorders_left = max(0, $preorders_left);
     mysqli_query($db, "INSERT INTO items (name, image, price, stock, preorders_left) VALUES
@@ -269,7 +269,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
     <header id="navbar">
         <h1>TransforMate Official Shop | Admin Pane</h1>
         <?php echo '<p>Logged in as <strong>' . htmlspecialchars($_SESSION['username']) . '</strong></p>'; ?>
-        <nav><a href="?logout=true">Logout</a></nav>
+        <nav><a href="?logout">Logout</a></nav>
     </header>
     <main class="admin-panel">
         <section class="add-item">
