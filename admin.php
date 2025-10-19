@@ -340,60 +340,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
                         <th>Country</th><th>Postal Code</th><th>Notes</th><th>Admin actions</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <?php
-                    $orders_query = mysqli_query($db, "SELECT * FROM orders ORDER BY order_time DESC");
-                    while ($order = mysqli_fetch_array($orders_query)) {
-                        $items = json_decode($order['items'], true);
-                        if (!is_array($items)) $items = [];
-                        echo "<tr><td>{$order['id']}</td>";
-                        echo "<td>" . date('d/m/Y H:m:s', strtotime($order['order_time'])) . "</td>";
-                        echo "<td>" . ($order['sent_time'] ? date('d/m/Y H:m:s', strtotime($order['sent_time'])) : 'N/A') . "</td>";
-                        // Small helper to reduce clutter
-                        function sel($value) { global $order; return $order['status'] === $value ? 'selected' : ''; }
-                        echo "<td><select onchange='updateOrder({$order['id']}, \"status\", this.value)'>";
-                        echo "<option value='preorder' " . sel('preorder') . ">Preorder</option>";
-                        echo "<option value='pending' " . sel('pending') . ">Pending</option>";
-                        echo "<option value='sent' " . sel('sent') . ">Sent</option>";
-                        echo "<option value='delivered' " . sel('delivered') . ">Delivered</option>";
-                        echo "<option value='cancelled' " . sel('cancelled') . ">Cancelled</option>";
-                        echo "<option value='refunded' " . sel('refunded') . ">Refunded</option>";
-                        echo "<option value='unpaid' " . sel('unpaid') . ">Unpaid</option>";
-                        echo "<option value='unpaid preorder' " . sel('unpaid preorder') . ">Unpaid Preorder</option>";
-                        echo "</select></td>";
-                        // Render editable items list: quantity inputs, remove buttons, and add controls
-                        echo "<td><div id='order-items-{$order['id']}' style='display:flex;flex-direction:column;gap:6px;'>";
-                        foreach ($items as $itemId => $quantity) {
-                            $item_query = mysqli_query($db, "SELECT name FROM items WHERE id=$itemId");
-                            $item_row = mysqli_fetch_array($item_query);
-                            echo "<div class='order-item' data-item-id='$itemId'>";
-                            echo "<span class='item-name'>" . ($item_row ? htmlspecialchars($item_row['name']) : 'Unknown Item') . "</span> ";
-                            echo "<input type='number' min='0' value='$quantity' style='width:70px' onchange='updateOrderItem({$order['id']}, $itemId, this.value)'> ";
-                            echo "<button onclick='removeOrderItem({$order['id']}, $itemId); return false;'>X</button></div>";
-                        }
-                        // Add item controls
-                        echo "<div class='add-order-item'><select id='add-item-select-{$order['id']}'>";
-                        foreach ($all_items_map as $id => $name) echo "<option value='$id'>" . htmlspecialchars($name) . "</option>";
-                        echo "</select>";
-                        echo "<input id='add-item-qty-{$order['id']}' type='number' min='1' value='1' style='width:60px;'>";
-                        echo "<button onclick='addOrderItem({$order['id']}); return false;'>+</button></div></div></td>";
-                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"subtotal\", this.innerText)'>" . number_format($order['subtotal'], 2) . "€</td>";
-                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"shipping\", this.innerText)'>" . number_format($order['shipping'], 2) . "€</td>";
-                        echo "<td>" . (number_format($order['subtotal'] + $order['shipping'], 2)) . "€</td>";
-                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"name\", this.innerText)'>" . htmlspecialchars($order['name']) . "</td>";
-                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"email\", this.innerText)'>" . htmlspecialchars($order['email']) . "</td>";
-                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"phone\", this.innerText)'>" . htmlspecialchars($order['phone']) . "</td>";
-                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"address\", this.innerText)'>" . htmlspecialchars($order['address']) . "</td>";
-                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"country\", this.innerText)'>" . htmlspecialchars($order['country']) . "</td>";
-                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"postal_code\", this.innerText)'>" . htmlspecialchars($order['postal_code']) . "</td>";
-                        echo "<td contenteditable='true' onBlur='updateOrder({$order['id']}, \"notes\", this.innerText)'>" . htmlspecialchars($order['notes']) . "</td>";
-                        echo "<td>";
-                        if ($order['status'] !== 'sent' && $order['status'] !== 'delivered')
-                            echo "<a href='?send_order_id={$order['id']}' onclick='return confirm(\"Mark order as sent?\")'>Mark as Sent</a> | ";
-                        echo "<a href='?delete_order_id={$order['id']}' onclick='return confirm(\"Are you sure?\")'>Delete</a></td></tr>";
+                <?php
+                echo "<tbody>";
+                $orders_query = mysqli_query($db, "SELECT * FROM orders ORDER BY order_time DESC");
+                while ($order = mysqli_fetch_array($orders_query)) {
+                    $items = json_decode($order['items'], true);
+                    if (!is_array($items)) $items = [];
+                    echo "<tr><td>{$order['id']}</td>";
+                    echo "<td>" . date('d/m/Y H:m:s', strtotime($order['order_time'])) . "</td>";
+                    echo "<td>" . ($order['sent_time'] ? date('d/m/Y H:m:s', strtotime($order['sent_time'])) : 'N/A') . "</td>";
+                    // Small helper to reduce clutter
+                    function sel($value) { global $order; return $order['status'] === $value ? 'selected' : ''; }
+                    $values = ['preorder', 'pending', 'sent', 'delivered', 'cancelled', 'refunded', 'unpaid', 'unpaid preorder'];
+                    echo "<td><select onchange='updateOrder({$order['id']}, \"status\", this.value)'>";
+                    foreach ($values as $v) echo "<option value='$v' " . sel($v) . ">" . ucfirst($v) . "</option>";
+                    echo "</select></td>";
+                    // Render editable items list: quantity inputs, remove buttons, and add controls
+                    echo "<td><div id='order-items-{$order['id']}' style='display:flex;flex-direction:column;gap:6px;'>";
+                    foreach ($items as $itemId => $quantity) {
+                        $item_query = mysqli_query($db, "SELECT name FROM items WHERE id=$itemId");
+                        $item_row = mysqli_fetch_array($item_query);
+                        echo "<div class='order-item' data-item-id='$itemId'>";
+                        echo "<span class='item-name'>" . ($item_row ? htmlspecialchars($item_row['name']) : 'Unknown Item') . "</span> ";
+                        echo "<input type='number' min='0' value='$quantity' style='width:70px' onchange='updateOrderItem({$order['id']}, $itemId, this.value)'> ";
+                        echo "<button onclick='removeOrderItem({$order['id']}, $itemId); return false;'>X</button></div>";
                     }
-                    ?>
-                </tbody>
+                    // Add item controls
+                    echo "<div class='add-order-item'><select id='add-item-select-{$order['id']}'>";
+                    foreach ($all_items_map as $id => $name) echo "<option value='$id'>" . htmlspecialchars($name) . "</option>";
+                    echo "</select>";
+                    echo "<input id='add-item-qty-{$order['id']}' type='number' min='1' value='1' style='width:60px;'>";
+                    echo "<button onclick='addOrderItem({$order['id']}); return false;'>+</button></div></div></td>";
+                    $fields = ['subtotal', 'shipping', 'total',
+                               'name', 'email', 'phone', 'address', 'country', 'postal_code', 'notes'];
+                    foreach ($fields as $field) {
+                        if (in_array($field, ['subtotal', 'shipping', 'total'])) {
+                            $field_value = number_format($order[$field], 2) . "€";
+                            if ($field === 'total') { echo "<td>$field_value</td>"; continue; }
+                        } else $field_value = htmlspecialchars($order[$field]);
+                        $function = "updateOrder({$order['id']}, \"$field\", this.innerText)";
+                        echo "<td contenteditable='true' onBlur='$function'>$field_value</td>";
+                    }
+                    echo "<td>";
+                    if ($order['status'] !== 'sent' && $order['status'] !== 'delivered')
+                        echo "<a href='?send_order_id={$order['id']}' onclick='return confirm(\"Mark order as sent?\")'>Mark as Sent</a> | ";
+                    echo "<a href='?delete_order_id={$order['id']}' onclick='return confirm(\"Are you sure?\")'>Delete</a></td></tr></tbody>";
+                }
+                ?>
             </table>
         </section>
     </main>
@@ -410,8 +403,7 @@ function updateItem(id, field, value) {
         headers: {
             'Content-Type': 'application/json',
             'X-Update-Type': 'item'
-        },
-        body: JSON.stringify({ id: id, field: field, value: value })
+        }, body: JSON.stringify({ id: id, field: field, value: value })
     }).then(response => response.json()).then(data => {
           if (data.success) console.log('Item updated successfully');
           else alert('Error updating item: ' + data.error);
@@ -424,8 +416,7 @@ function updateOrder(id, field, value) {
         headers: {
             'Content-Type': 'application/json',
             'X-Update-Type': 'order'
-        },
-        body: JSON.stringify({ id: id, field: field, value: value })
+        }, body: JSON.stringify({ id: id, field: field, value: value })
     }).then(response => response.json()).then(data => {
         if (!data.success) { alert('Error updating order: ' + data.error); return; }
         if (typeof data.total === 'undefined') { console.log('Order updated successfully'); return; }
