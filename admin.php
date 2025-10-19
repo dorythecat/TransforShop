@@ -22,7 +22,7 @@ if (isset($_POST['add_item'])) {
     $price = floatval($_POST['price']);
     $stock = intval($_POST['stock']);
     $preorders_left = intval($_POST['preorders_left']);
-    if ($image === '') $image = 'https://placehold.co/512';
+    if ($image === '') $image = 'https://picsum.photos/150'; // Default placeholder image
     $stock = max(0, $stock);
     $preorders_left = max(0, $preorders_left);
     mysqli_query($db, "INSERT INTO items (name, image, price, stock, preorders_left) VALUES

@@ -87,7 +87,7 @@ th {
 
 .product-card img {
     max-width: 100%;
-    max-height: 150px;
+    height: 150px;
     object-fit: contain;
     margin-bottom: 10px;
     transition: transform 0.3s ease;
