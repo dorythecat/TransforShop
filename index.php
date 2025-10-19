@@ -95,10 +95,12 @@ echo "<div id='product-list'>";
 while ($row = mysqli_fetch_array($shop_items)) {
     if (!$row['visible']) continue;
     if ($row['stock'] <= 0) echo "<div class='product-card oos'><h2 class='oos-label'>Out of Stock</h2>";
-    else if ($row['preorders_left'] > 0) echo "<div class='product-card preorder'><h2 class='preorder-label'>Preorder</h2>";
     else echo "<div class='product-card'>";
-    echo "<img src='{$row['image']}' alt='Product Image'>";
-    echo "<h2>" . htmlspecialchars($row['name']) . "</h2><p>" . htmlspecialchars($row['description']) . "</p>";
+    if ($row['preorders_left'] > 0) echo "<h2 class='preorder-label'>Preorder</h2>";
+    $name = htmlspecialchars($row['name']);
+    echo "<img src='{$row['image']}' alt='Product image for \"$name\"'>";
+    if ($row['stock'] > 0) echo "<h2>$name</h2><p>" . htmlspecialchars($row['description']) . "</p>";
+    else echo "<h2 style='color:darkred;'>$name</h2><p><i>" . htmlspecialchars($row['description']) . "</i></p>";
     $stock = $row['preorders_left'] > 0 ? $row['preorders_left'] : $row['stock'];
     $text = $row['preorders_left'] > 0 ? "Preorders" : "Units";
     if ($stock > 0) {
