@@ -1,12 +1,11 @@
 body {
-    text-align: center;
     background-color: #333;
     color: #111;
     user-select: none;
 }
 
 h1 { font-size: 300%; }
-th { text-align: center; }
+th, body { text-align: center; }
 
 #navbar,
 #cart-container {
