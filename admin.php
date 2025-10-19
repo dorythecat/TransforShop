@@ -27,8 +27,8 @@ if (isset($_POST['add_item'])) {
     $stock = intval($_POST['stock']);
     $preorders_left = intval($_POST['preorders_left']);
     if ($image === '') $image = 'https://placehold.co/512';
-    if ($stock < 0) $stock = 0;
-    if ($preorders_left < 0) $preorders_left = 0;
+    $stock = max(0, $stock);
+    $preorders_left = max(0, $preorders_left);
     mysqli_query($db, "INSERT INTO items (name, image, price, stock, preorders_left) VALUES
                                                ('$name', '$image', $price, $stock, $preorders_left);");
     header("Location: " . $_SERVER['PHP_SELF']);
@@ -185,10 +185,7 @@ function updateOrderItems($input, $db) {
         $ids_list = implode(',', $ids_int);
         $prices_res = mysqli_query($db, "SELECT id, price FROM items WHERE id IN ($ids_list);");
         if ($prices_res) while ($p = mysqli_fetch_array($prices_res)) $prices[intval($p['id'])] = floatval($p['price']);
-        foreach ($items as $iid => $q) {
-            $p = isset($prices[intval($iid)]) ? $prices[intval($iid)] : 0.0;
-            $subtotal += $p * intval($q);
-        }
+        foreach ($items as $iid => $q) $subtotal += isset($prices[intval($iid)]) ? $prices[intval($iid)] * intval($q) : 0.0;
     }
 
     // Prepare values for DB update
@@ -211,37 +208,25 @@ function updateOrderItems($input, $db) {
     if (!empty($all_ids)) {
         // prepare statement once
         $stmt = mysqli_prepare($db, "UPDATE items SET stock = stock + ?, preorders_left = preorders_left + ? WHERE id = ?;");
-        if ($stmt) {
-            foreach ($all_ids as $iid) {
-                $pid = intval($iid);
-                $prev_qty = isset($prev_items[$pid]) ? intval($prev_items[$pid]) : 0;
-                $new_qty = isset($items[$pid]) ? intval($items[$pid]) : 0;
-                $stock_delta = $prev_qty - $new_qty; // add this amount to stock
-                $preorders_delta = ($prev_preorder ? $prev_qty : 0) - ($prev_preorder ? $new_qty : 0);
-                if ($stock_delta === 0 && $preorders_delta === 0) continue; // nothing to do
-                if (!mysqli_stmt_bind_param($stmt, 'iii', $stock_delta, $preorders_delta, $pid) ||
-                        !mysqli_stmt_execute($stmt)) {
-                    mysqli_stmt_close($stmt);
-                    mysqli_rollback($db);
-                    return error_failed_to('update orders');
-                }
-            }
-            mysqli_stmt_close($stmt);
-        } else {
-            // Fallback: run individual queries if prepare fails
-            foreach ($all_ids as $iid) {
-                $pid = intval($iid);
-                $prev_qty = isset($prev_items[$pid]) ? intval($prev_items[$pid]) : 0;
-                $new_qty = isset($items[$pid]) ? intval($items[$pid]) : 0;
-                $stock_delta = $prev_qty - $new_qty;
-                $preorders_delta = ($prev_preorder ? $prev_qty : 0) - ($prev_preorder ? $new_qty : 0);
-                if ($stock_delta === 0 && $preorders_delta === 0) continue;
+        $fail = false;
+        foreach ($all_ids as $iid) {
+            $pid = intval($iid);
+            $prev_qty = isset($prev_items[$pid]) ? intval($prev_items[$pid]) : 0;
+            $new_qty = isset($items[$pid]) ? intval($items[$pid]) : 0;
+            $stock_delta = $prev_qty - $new_qty; // add this amount to stock
+            $preorders_delta = ($prev_preorder ? $prev_qty : 0) - ($prev_preorder ? $new_qty : 0);
+            if ($stock_delta === 0 && $preorders_delta === 0) continue; // nothing to do
+            if ($stmt) { // Use prepared statement
+                mysqli_stmt_bind_param($stmt, 'iii', $stock_delta, $preorders_delta, $pid);
+                $fail = !mysqli_stmt_execute($stmt);
+            } else { // Fallback: run individual queries if prepare fails
                 $q = "UPDATE items SET stock = stock + $stock_delta, preorders_left = preorders_left + $preorders_delta WHERE id=$pid;";
-                if (!mysqli_query($db, $q)) {
-                    mysqli_rollback($db);
-                    return error_failed_to('update orders');
-                }
-            }
+                $fail = !mysqli_query($db, $q);
+            } if ($fail) break;
+        } if ($stmt) mysqli_stmt_close($stmt);
+        if ($fail) {
+            mysqli_rollback($db);
+            return error_failed_to('update orders');
         }
     }
 
@@ -263,20 +248,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
         echo json_encode(['success' => false, 'error' => 'Missing update type']);
         exit();
     }
-    $input = json_decode(file_get_contents('php://input'), true);
-    if ($_SERVER['HTTP_X_UPDATE_TYPE'] === 'item') {
-        echo update($input,
-                   ['name', 'description', 'image', 'price', 'stock', 'preorders_left', 'visible'],
-                   $db,
-                  'items');
-    } else if ($_SERVER['HTTP_X_UPDATE_TYPE'] === 'order') {
-        if (isset($input['field']) && $input['field'] === 'items') echo updateOrderItems($input, $db);
-        else {
-            echo update($input,
-                        ['status', 'name', 'subtotal', 'shipping', 'email', 'phone', 'address', 'country', 'postal_code', 'notes'],
-                        $db,
-                        'orders');
-        }
+    $type = $_SERVER['HTTP_X_UPDATE_TYPE'];
+    $allowed_list = ['status', 'name', 'subtotal', 'shipping', 'email', 'phone', 'address', 'country', 'postal_code', 'notes'];
+    if (in_array($type, ['item', 'order'])) {
+        $input = json_decode(file_get_contents('php://input'), true);
+        if ($type == 'item') {
+            $allowed_list = ['name', 'description', 'image', 'price', 'stock', 'preorders_left', 'visible'];
+            if (isset($input['field']) && $input['field'] === 'items') echo updateOrderItems($input, $db);
+        } else echo update($input, $allowed_list, $db, $type . 's');
     } else echo error_invalid('update type');
     exit();
 }
