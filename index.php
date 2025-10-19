@@ -112,8 +112,7 @@ echo "</div></div></div>";
 echo "<div id='product-list'>";
 while ($row = mysqli_fetch_array($shop_items)) {
     if (!$row['visible']) continue;
-    if ($row['stock'] <= 0)
-        echo "<div class='product-card out-of-stock'><h2 class='out-of-stock-label'>Out of Stock</h2>";
+    if ($row['stock'] <= 0) echo "<div class='product-card oos'><h2 class='oos-label'>Out of Stock</h2>";
     else echo "<div class='product-card'>";
     echo "<img src='{$row['image']}' alt='Product Image'>";
     echo "<h2>" . htmlspecialchars($row['name']) . "</h2><p>" . htmlspecialchars($row['description']) . "</p>";

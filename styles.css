@@ -106,12 +106,12 @@ th {
     margin: 5px 0;
 }
 
-.out-of-stock {
+.oos {
     opacity: 0.5;
     pointer-events: none;
 }
 
-.out-of-stock-label,
+.oos-label,
 .preorder-label {
     position: absolute;
     font-weight: bold;
