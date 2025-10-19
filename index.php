@@ -23,9 +23,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $itemId = intval($_POST['set_quantity_id']);
         // Get max stock for this item
         $item_query = mysqli_query($db, "SELECT stock FROM items WHERE id=$itemId;");
-        $maxStock = 0;
-        if ($item_row = mysqli_fetch_array($item_query))
-            $maxStock = $item_row['preorders_left'] > 0 ? $item_row['preorders_left'] : $item_row['stock'];
+        $item_row = mysqli_fetch_array($item_query);
+        if (!$item_row) {
+            header("Location: " . $_SERVER['PHP_SELF']);
+            exit();
+        }
+        $maxStock = $item_row['preorders_left'] > 0 ? $item_row['preorders_left'] : $item_row['stock'];
         setCartQuantity($itemId, intval($_POST['set_quantity_value']), $maxStock);
     } else if (isset($_POST['add_to_cart_id'])) addToCart(intval($_POST['add_to_cart_id']));
 
