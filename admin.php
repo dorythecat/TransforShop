@@ -240,15 +240,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
         echo json_encode(['success' => false, 'error' => 'Missing update type']);
         exit();
     }
-    $type = $_SERVER['HTTP_X_UPDATE_TYPE'];
     $allowed_list = ['status', 'name', 'subtotal', 'shipping', 'email', 'phone', 'address', 'country', 'postal_code', 'notes'];
-    if (in_array($type, ['item', 'order'])) {
+    if (in_array($_SERVER['HTTP_X_UPDATE_TYPE'], ['item', 'order'])) {
         $input = json_decode(file_get_contents('php://input'), true);
-        if ($type == 'order' && isset($input['field']) && $input['field'] === 'items') {
+        if ($_SERVER['HTTP_X_UPDATE_TYPE'] == 'order' && isset($input['field']) && $input['field'] === 'items') {
             echo updateOrderItems($input, $db);
             exit();
         } if ($type === 'item') $allowed_list = ['name', 'description', 'image', 'price', 'stock', 'preorders_left', 'visible'];
-        echo update($input, $allowed_list, $db, $type . 's');
+        echo update($input, $allowed_list, $db, $_SERVER['HTTP_X_UPDATE_TYPE'] . 's');
     } else echo error_invalid('update type');
     exit();
 }
