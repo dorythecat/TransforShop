@@ -287,7 +287,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex,nofollow">
     <title>TransforMate Official Shop | Admin Panel</title>
+
+    <link rel="canonical" href="https://shop.transformate.live/admin.php">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>

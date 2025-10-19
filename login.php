@@ -25,7 +25,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex,nofollow">
     <title>TransforMate Official Shop | Admin Login</title>
+
+    <link rel="canonical" href="https://shop.transformate.live/login.php">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>

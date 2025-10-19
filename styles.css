@@ -116,18 +116,16 @@ th {
     position: absolute;
     font-weight: bold;
     text-align: center;
-    transform: translateY(50%) rotate(45deg);
+    color: darkorange;
+    font-size: 44px;
+    transform: translateY(75%) rotate(45deg);
     text-shadow: 2px 2px 4px #000;
 }
 
 .out-of-stock-label {
     color: red;
-    font-size: 72px;
-}
-
-.preorder-label {
-    color: darkorange;
-    font-size: 44px;
+    font-size: 84px;
+    transform: translateY(100%) rotate(45deg);
 }
 
 .add-to-cart {

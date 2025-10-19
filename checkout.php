@@ -167,7 +167,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex,nofollow">
     <title>TransforMate Official Shop | Checkout</title>
+
+    <link rel="canonical" href="https://shop.transformate.live/checkout.php">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>

@@ -60,7 +60,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="The official storefront for the TransforMate project. Browse and purchase
+                                      exclusive merchandise and products.">
+    <meta name="keywords" content="TransforMate, Shop, Official Store, Merchandise, Products, Stickers">
+    <meta name="author" content="Dory">
+    <meta name="robots" content="index, follow">
     <title>TransforMate Official Shop | Shop</title>
+
+    <link rel="canonical" href="https://shop.transformate.live/index.php">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -106,12 +113,12 @@ echo "<div id='product-list'>";
 while ($row = mysqli_fetch_array($shop_items)) {
     if (!$row['visible']) continue;
     if ($row['stock'] <= 0)
-        echo "<div class='product-card out-of-stock'><h1 class='out-of-stock-label'>Out of Stock</h1>";
+        echo "<div class='product-card out-of-stock'><h2 class='out-of-stock-label'>Out of Stock</h2>";
     else echo "<div class='product-card'>";
     echo "<img src='{$row['image']}' alt='Product Image'>";
     echo "<h2>" . htmlspecialchars($row['name']) . "</h2><p>" . htmlspecialchars($row['description']) . "</p>";
     if ($row['preorders_left'] > 0) {
-        echo "<h1 class='preorder-label'>Preorder</h1>";
+        echo "<h2 class='preorder-label'>Preorder</h2>";
         if ($row['preorders_left'] < 10) echo "<p style='color:red;'>Only {$row['preorders_left']} preorders left!</p>";
         else echo "<p>Preorders left: {$row['preorders_left']}</p>";
     } else {
