@@ -4,13 +4,8 @@ require_once 'secrets.php';
 if (session_status() == PHP_SESSION_NONE) session_start();
 $db = mysqli_connect(DB_HOST, DB_USER, DB_PASS, DB_DATABASE);
 if (!$db) die("Connection failed: " . mysqli_connect_error());
-$logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
-if (!$logged_in) {
-    header("Location: login.php");
-    exit();
-}
-if (isset($_GET['logout'])) {
-    session_destroy();
+if (!isset($_SESSION['admin_logged_in']) || !$_SESSION['admin_logged_in'] === true || isset($_GET['logout'])) {
+    if (isset($_GET['logout'])) unset($_SESSION['admin_logged_in']);
     header("Location: login.php");
     exit();
 }
@@ -20,6 +15,7 @@ if (isset($_GET['delete_item_id'])) {
     header("Location: " . $_SERVER['PHP_SELF']);
     exit();
 }
+
 if (isset($_POST['add_item'])) {
     $name = mysqli_real_escape_string($db, $_POST['name']);
     $image = mysqli_real_escape_string($db, $_POST['image']);
