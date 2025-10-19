@@ -122,7 +122,7 @@ th {
     text-shadow: 2px 2px 4px #000;
 }
 
-.out-of-stock-label {
+.oos-label {
     color: red;
     font-size: 84px;
     transform: translateY(100%) rotate(45deg);
