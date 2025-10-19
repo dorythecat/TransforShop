@@ -92,32 +92,48 @@ function update($input, $allowed_fields, $db, $table_name) {
 
     // If updating an orders numeric field (subtotal or shipping), coerce to numeric and update without quotes,
     // then recompute total and return the new numbers to the client so the UI can refresh.
-    if (in_array($field, $allowed_fields)) {
-        if ($table_name === 'orders' && ($field === 'subtotal' || $field === 'shipping')) {
-            // Extract numeric value (allow digits, dot and minus)
-            $num = floatval(preg_replace('/[^0-9.\-]/', '', strval($raw_value)));
-            // Persist the numeric value
-            if (!mysqli_query($db, "UPDATE orders SET $field=$num WHERE id=$id"))
-                return error_failed_to('update order');
-            // Re-fetch subtotal and shipping to compute total (in case only one was updated)
-            $res2 = mysqli_query($db, "SELECT subtotal, shipping FROM orders WHERE id=$id");
-            $row2 = mysqli_fetch_array($res2);
-            $subtotal = floatval($row2['subtotal']);
-            $shipping = floatval($row2['shipping']);
-            $total = $subtotal + $shipping;
-            // Persist total
-            mysqli_query($db, "UPDATE orders SET total=$total WHERE id=$id");
-            return json_encode(['success' => true,
-                                'subtotal' => $subtotal,
-                                'shipping' => $shipping,
-                                'total' => $total]);
-        }
+    if (!in_array($field, $allowed_fields)) return error_invalid('field');
+    if ($table_name === 'orders' && ($field === 'subtotal' || $field === 'shipping')) {
+        // Extract numeric value (allow digits, dot and minus)
+        $num = floatval(preg_replace('/[^0-9.\-]/', '', strval($raw_value)));
+        // Persist the numeric value
+        if (!mysqli_query($db, "UPDATE orders SET $field=$num WHERE id=$id"))
+            return error_failed_to('update order');
+        // Re-fetch subtotal and shipping to compute total (in case only one was updated)
+        $res2 = mysqli_query($db, "SELECT subtotal, shipping FROM orders WHERE id=$id");
+        $row2 = mysqli_fetch_array($res2);
+        $subtotal = floatval($row2['subtotal']);
+        $shipping = floatval($row2['shipping']);
+        $total = $subtotal + $shipping;
+        // Persist total
+        mysqli_query($db, "UPDATE orders SET total=$total WHERE id=$id");
+        return json_encode(['success' => true,
+                            'subtotal' => $subtotal,
+                            'shipping' => $shipping,
+                            'total' => $total]);
+    }
 
-        // Default behaviour: update as string/value
-        $value = mysqli_real_escape_string($db, $raw_value);
-        mysqli_query($db, "UPDATE $table_name SET $field='$value' WHERE id=$id");
-        return json_encode(['success' => true]);
-    } return error_invalid('field');
+    if ($table_name === 'items' && ($field === 'stock' || $field === 'preorders_left')) {
+        $value = max(0, intval($raw_value));
+        $res = mysqli_query($db, "SELECT stock, preorders_left FROM items WHERE id=$id");
+        $row = mysqli_fetch_array($res);
+        if ($field === 'stock') {
+            $stock = $value;
+            $preorders_left = min(intval($row['preorders_left']), $value);
+        } else {
+            $stock = intval($row['stock']);
+            $preorders_left = min($value, $stock);
+        }
+        mysqli_query($db, "UPDATE $table_name SET stock=$stock, preorders_left=$preorders_left WHERE id=$id");
+        return json_encode(['success' => true,
+                            'stock' => $stock,
+                            'preorders_left' => $preorders_left]);
+    }
+
+    // Default behaviour: update as string/value
+    $value = mysqli_real_escape_string($db, $raw_value);
+    mysqli_query($db, "UPDATE $table_name SET $field='$value' WHERE id=$id");
+    return json_encode(['success' => true]);
 }
 
 /**
@@ -406,7 +422,16 @@ function updateItem(id, field, value) {
             'X-Update-Type': 'item'
         }, body: JSON.stringify({ id: id, field: field, value: value })
     }).then(response => response.json()).then(data => {
-          if (data.success) console.log('Item updated successfully');
+          if (data.success) {
+              if (field === 'stock' || field === 'preorders_left') {
+                  const itemRow = document.querySelector("tr[data-item-id='" + id + "']");
+                  if (!itemRow) return;
+                  const stockCell = itemRow.querySelector('td:nth-child(6)');
+                  const preorderCell = itemRow.querySelector('td:nth-child(7)');
+                  if (typeof data.stock !== 'undefined') stockCell.innerText = data.stock;
+                  if (typeof data.preorders_left !== 'undefined') preorderCell.innerText = data.preorders_left;
+              } console.log('Item updated successfully');
+          }
           else alert('Error updating item: ' + data.error);
     });
 }
