@@ -90,6 +90,7 @@ th { text-align: center; }
     opacity: 0.5;
     pointer-events: none;
 }
+.oos img { filter: grayscale(100%); }
 
 .oos-label,
 .preorder-label {
@@ -97,16 +98,12 @@ th { text-align: center; }
     font-weight: bold;
     text-align: center;
     color: darkorange;
-    font-size: 44px;
-    transform: translateY(75%) rotate(45deg);
+    font-size: 56px;
+    transform: translateY(125%) rotate(45deg);
     text-shadow: 2px 2px 4px #000;
+    z-index: 1;
 }
-
-.oos-label {
-    color: red;
-    font-size: 84px;
-    transform: translateY(100%) rotate(45deg);
-}
+.oos-label { color: red; }
 
 .add-to-cart {
     background-color: #28a745;
@@ -123,11 +120,7 @@ th { text-align: center; }
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     transform: scale(1.1);
 }
-
-.add-to-cart:disabled {
-    background-color: #6c757d;
-    cursor: not-allowed;
-}
+.add-to-cart:disabled { background-color: #6c757d; }
 
 #cart-dropdown {
     display: none;
