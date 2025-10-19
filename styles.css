@@ -2,31 +2,35 @@ body {
     text-align: center;
     background-color: #333;
     color: #111;
+    user-select: none;
 }
 
 h1 {
     font-size: 300%;
-    user-select: none;
 }
 
 th {
     text-align: center;
 }
 
-#navbar {
-    display: flex;
+#navbar,
+#cart-container {
+    position: relative;
     justify-content: center;
     align-items: center;
-    gap: 20px;
+    z-index: 1000;
+}
+
+#navbar {
     margin-bottom: 20px;
     background-color: #ccc;
     padding: 20px;
     border-radius: 20px;
-    position: relative;
-    z-index: 1000;
 }
 
-#navbar nav {
+#navbar,
+#navbar nav,
+#product-list {
     display: flex;
     gap: 20px;
 }
@@ -40,12 +44,8 @@ th {
 }
 
 #cart-container {
-    justify-content: center;
-    align-items: center;
     cursor: pointer;
     transition: transform 0.3s ease;
-    position: relative;
-    z-index: 1000;
 }
 
 #cart-container:hover {
@@ -54,7 +54,6 @@ th {
 
 #cart-container h3 {
     margin: 0 10px;
-    user-select: none;
 }
 
 #shopping-cart {
@@ -63,10 +62,8 @@ th {
 }
 
 #product-list {
-    display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 20px;
 }
 
 .product-card {
@@ -93,12 +90,12 @@ th {
     max-height: 150px;
     object-fit: contain;
     margin-bottom: 10px;
-    user-select: none;
     transition: transform 0.3s ease;
 }
 
 .product-card img:hover {
     transform: scale(1.1);
+    z-index: 10;
 }
 
 .product-card h2 {
@@ -107,7 +104,6 @@ th {
 
 .product-card p {
     margin: 5px 0;
-    user-select: none;
 }
 
 .out-of-stock {
@@ -115,26 +111,23 @@ th {
     pointer-events: none;
 }
 
-.out-of-stock-label {
+.out-of-stock-label,
+.preorder-label {
     position: absolute;
-    color: red;
     font-weight: bold;
-    user-select: none;
     text-align: center;
-    font-size: 72px;
     transform: translateY(50%) rotate(45deg);
     text-shadow: 2px 2px 4px #000;
 }
 
+.out-of-stock-label {
+    color: red;
+    font-size: 72px;
+}
+
 .preorder-label {
-    position: absolute;
     color: darkorange;
-    font-weight: bold;
-    user-select: none;
-    text-align: center;
     font-size: 44px;
-    transform: translateY(50%) rotate(45deg);
-    text-shadow: 2px 2px 4px #000;
 }
 
 .add-to-cart {
@@ -211,7 +204,6 @@ th {
     border-radius: 5px;
     box-sizing: border-box;
     text-align: center;
-    user-select: none;
     transition: border-color 0.3s ease;
 }
 
@@ -289,12 +281,14 @@ input[type=number] {
     overflow: hidden;
 }
 
-#checkout-table th, #checkout-table td {
+#checkout-table th,
+#checkout-table td {
     padding: 10px;
     text-align: left;
 }
 
-#checkout-table td.price-col, #checkout-table th.price-col {
+#checkout-table td.price-col,
+#checkout-table th.price-col {
     width: 110px;
     min-width: 90px;
     max-width: 140px;
@@ -414,22 +408,23 @@ input[type=number] {
 .error {
     color: red;
     font-weight: bold;
-    user-select: none;
     margin: 0;
     padding: 0;
     text-align: center;
 }
 
-.login-form input {
+.login-form input,
+.login-form button {
     width: 100%;
+    margin-top: 8px;
+    margin-bottom: 0;
+    font-size: 1rem;
+    border-radius: 10px;
     padding: 12px 10px;
     border: 1px solid #bbb;
-    border-radius: 6px;
-    font-size: 1rem;
-    background: #fff;
-    margin-bottom: 0;
-    transition: border-color 0.2s;
+    background-color: #fff;
     box-sizing: border-box;
+    transition: background 0.2s, box-shadow 0.2s, border-color 0.2s;
 }
 
 .login-form input:focus {
@@ -439,26 +434,15 @@ input[type=number] {
 
 .login-form button {
     background-color: #28a745;
-    color: #fff;
+    color: white;
     border: none;
-    padding: 12px 0;
-    border-radius: 6px;
-    font-size: 1.1rem;
     font-weight: bold;
-    width: 100%;
-    margin-top: 8px;
-    margin-bottom: 0;
     cursor: pointer;
-    transition: background 0.2s, box-shadow 0.2s;
     box-shadow: 0 2px 8px rgba(40,167,69,0.08);
 }
 
 .login-form button:hover {
     background-color: #218838;
-}
-
-.login-form button:active {
-    background-color: #1e7e34;
 }
 
 .admin-panel {
@@ -468,59 +452,55 @@ input[type=number] {
     list-style: none;
 }
 
+.add-item,
+.admin-panel table,
+.login-form h2,
+.admin-panel h2 {
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+}
+
 .add-item {
-    background-color: #007bff;
+    background-color: blue;
     color: white;
     border: none;
     padding: 10px 20px;
     border-radius: 10px;
-    width: fit-content;
     display: block;
-    margin-left: auto;
-    margin-right: auto;
-    user-select: none;
 }
 
 .login-form h2,
 .admin-panel h2 {
     font-size: 250%;
-    user-select: none;
     margin-bottom: 20px;
     color: #28a745;
     background-color: #f0f0f0;
     padding: 10px;
     border-radius: 10px;
     box-shadow: 0 4px 8px #777;
-    width: fit-content;
-    margin-left: auto;
-    margin-right: auto;
 }
 
 .admin-panel table {
-    width: fit-content;
-    margin-left: auto;
-    margin-right: auto;
     background-color: #f9f9f9;
     border-collapse: collapse;
 }
 
-.admin-panel th, .admin-panel td {
+.admin-panel th,
+.admin-panel td {
     padding: 8px 12px;
     border: 1px solid #ddd;
     text-align: left;
 }
 
-.admin-panel th {
+.admin-panel th,
+.admin-panel td:hover {
     background-color: #f2f2f2;
 }
 
 .admin-panel th:hover {
     background-color: #e0e0e0;
     cursor: pointer;
-}
-
-.admin-panel td:hover {
-    background-color: #f1f1f1;
 }
 
 .add-order-item {
