@@ -8,47 +8,26 @@ if (!$db) die("Connection failed: " . mysqli_connect_error());
 $shop_items=mysqli_query($db,"SELECT * FROM items ORDER BY stock DESC;");
 
 function addToCart($itemId) {
-    if (isset($_SESSION['cart'][$itemId])) $_SESSION['cart'][$itemId]++;
-    else $_SESSION['cart'][$itemId] = 1;
-}
-
-function removeFromCart($itemId) {
-    if (isset($_SESSION['cart'][$itemId])) {
-        $_SESSION['cart'][$itemId]--;
-        if ($_SESSION['cart'][$itemId] <= 0) unset($_SESSION['cart'][$itemId]);
-    }
+    if (!isset($_SESSION['cart'][$itemId])) $_SESSION['cart'][$itemId] = 0;
+    $_SESSION['cart'][$itemId]++;
 }
 
 function setCartQuantity($itemId, $quantity, $maxStock) {
-    $quantity = max(0, min($quantity, $maxStock));
-    if ($quantity > 0) $_SESSION['cart'][$itemId] = $quantity;
-    else unset($_SESSION['cart'][$itemId]);
+    $quantity = min($quantity, $maxStock);
+    $_SESSION['cart'][$itemId] = $quantity;
+    if ($quantity <= 0) unset($_SESSION['cart'][$itemId]);
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['add_to_cart_id'])) {
-        $itemId = intval($_POST['add_to_cart_id']);
-        addToCart($itemId);
-    }
-    if (isset($_POST['add_one'])) {
-        $itemId = intval($_POST['add_one']);
-        addToCart($itemId);
-    }
-    if (isset($_POST['remove_one'])) {
-        $itemId = intval($_POST['remove_one']);
-        removeFromCart($itemId);
-    }
     if (isset($_POST['set_quantity_id']) && isset($_POST['set_quantity_value'])) {
         $itemId = intval($_POST['set_quantity_id']);
-        $quantity = intval($_POST['set_quantity_value']);
         // Get max stock for this item
         $item_query = mysqli_query($db, "SELECT stock FROM items WHERE id=$itemId;");
         $maxStock = 0;
-        if ($item_row = mysqli_fetch_array($item_query)) {
-            if ($item_row['preorders_left'] > 0) $maxStock = $item_row['preorders_left'];
-            else $maxStock = $item_row['stock'];
-        } setCartQuantity($itemId, $quantity, $maxStock);
-    }
+        if ($item_row = mysqli_fetch_array($item_query))
+            $maxStock = $item_row['preorders_left'] > 0 ? $item_row['preorders_left'] : $item_row['stock'];
+        setCartQuantity($itemId, intval($_POST['set_quantity_value']), $maxStock);
+    } else if (isset($_POST['add_to_cart_id'])) addToCart(intval($_POST['add_to_cart_id']));
 
     header("Location: " . $_SERVER['PHP_SELF']);
     exit();
