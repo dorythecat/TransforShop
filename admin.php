@@ -360,14 +360,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
                 <?php
                 echo "<tbody>";
                 $orders_query = mysqli_query($db, "SELECT * FROM orders ORDER BY order_time DESC");
+                // Small helper to reduce clutter
+                function sel($value) { global $order; return $order['status'] === $value ? 'selected' : ''; }
                 while ($order = mysqli_fetch_array($orders_query)) {
                     $items = json_decode($order['items'], true);
                     if (!is_array($items)) $items = [];
                     echo "<tr><td>{$order['id']}</td>";
                     echo "<td>" . date('d/m/Y H:m:s', strtotime($order['order_time'])) . "</td>";
                     echo "<td>" . ($order['sent_time'] ? date('d/m/Y H:m:s', strtotime($order['sent_time'])) : 'N/A') . "</td>";
-                    // Small helper to reduce clutter
-                    function sel($value) { global $order; return $order['status'] === $value ? 'selected' : ''; }
                     $values = ['preorder', 'pending', 'sent', 'delivered', 'cancelled', 'refunded', 'unpaid', 'unpaid preorder'];
                     echo "<td><select onchange='updateOrder({$order['id']}, \"status\", this.value)'>";
                     foreach ($values as $v) echo "<option value='$v' " . sel($v) . ">" . ucfirst($v) . "</option>";
