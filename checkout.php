@@ -83,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
         $total = $subtotal + $shipping;
         $order_items_json = json_encode($order_items);
         $insert_query = "INSERT INTO orders (status, name, address, postal_code, country, email, phone, items, subtotal, shipping, total, notes) 
-                         VALUES ($status, '$name', '$address', '$postal_code', '$country', '$email', '$phone', '$order_items_json', '$subtotal', '$shipping', '$total', '$notes')";
+                         VALUES ('$status', '$name', '$address', '$postal_code', '$country', '$email', '$phone', '$order_items_json', '$subtotal', '$shipping', '$total', '$notes')";
         mysqli_query($db, $insert_query);
 
         $order_id_query = mysqli_query($db, "SELECT id FROM orders WHERE email='$email' AND
