@@ -331,10 +331,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
                         echo "<td>$id</td>";
                         echo "<td contenteditable='true' onBlur='updateItem($id, \"name\", this.innerText)'>$name</td>";
                         echo "<td contenteditable='true' onBlur='updateItem($id, \"description\", this.innerText)'>$description</td>";
-                        // Image preview + editable URL
-                        echo "<td><div style='display:flex; align-items:center; gap:8px;'>";
-                        echo "<img src='$image' alt='$name' width='50'/>";
-                        echo "<div contenteditable='true' onBlur='updateItem($id, \"image\", this.innerText)'>$image</div>";
+                        // Image preview and editable URL on click
+                        echo "<td><div class='image-cell'><img src='$image' alt='$name Image' class='item-image-preview' onclick='let url=prompt(\"Image URL:\", this.src); if(url){this.src=url; updateItem($id, \"image\", url);}'>";
                         echo "</div></td>";
                         echo "<td contenteditable='true' onBlur='updateItem($id, \"price\", this.innerText)'>$price</td>";
                         echo "<td contenteditable='true' onBlur='updateItem($id, \"stock\", this.innerText)'>$stock</td>";

@@ -415,6 +415,15 @@ input[type=number] { -moz-appearance: textfield; }
     display: block;
 }
 
+.item-image-preview {
+    max-width: 64px;
+    max-height: 64px;
+    margin-top: 10px;
+    border: 2px solid #ccc;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px #777;
+}
+
 .login-form h2,
 .admin-panel h2 {
     font-size: 250%;
