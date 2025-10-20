@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_POST['addre
 
         $order_id_query = mysqli_query($db, "SELECT id FROM orders WHERE email='$email' AND
                                                                                items='$order_items_json' AND
-                                                                               status=$status ORDER BY id DESC LIMIT 1");
+                                                                               status=$status ORDER BY id DESC");
         $ids[] = mysqli_fetch_array($order_id_query)['id'];
 
         // Remove items from stock
